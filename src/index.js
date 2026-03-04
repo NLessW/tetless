@@ -197,64 +197,97 @@ const TETROMINOES = {
     },
 };
 
-// SRS 월 킥 데이터 (회전 전→후 상태)
+// SRS 월 킥 데이터 (회전 전→후 상태) - 스크린 좌표계 기준 (y+ = 아래)
 // 일반 피스 (J, L, S, T, Z)
 const WALL_KICK_JLSTZ = {
     '0→1': [
         [0, 0],
         [-1, 0],
-        [-1, +1],
-        [0, -2],
-        [-1, -2],
+        [-1, -1],
+        [0, +2],
+        [-1, +2],
     ],
     '1→0': [
         [0, 0],
         [+1, 0],
-        [+1, -1],
-        [0, +2],
-        [+1, +2],
+        [+1, +1],
+        [0, -2],
+        [+1, -2],
     ],
     '1→2': [
         [0, 0],
         [+1, 0],
-        [+1, -1],
-        [0, +2],
+        [+1, +1],
+        [0, -2],
         [+1, +2],
     ],
     '2→1': [
         [0, 0],
         [-1, 0],
-        [-1, +1],
-        [0, -2],
+        [-1, -1],
+        [0, +2],
         [-1, -2],
     ],
     '2→3': [
         [0, 0],
         [+1, 0],
-        [+1, +1],
-        [0, -2],
-        [+1, -2],
+        [+1, -1],
+        [0, +2],
+        [+1, +2],
     ],
     '3→2': [
         [0, 0],
         [-1, 0],
-        [-1, -1],
-        [0, +2],
-        [-1, +2],
+        [-1, +1],
+        [0, -2],
+        [-1, -2],
     ],
     '3→0': [
         [0, 0],
         [-1, 0],
-        [-1, -1],
-        [0, +2],
-        [-1, +2],
+        [-1, +1],
+        [0, -2],
+        [-1, -2],
     ],
     '0→3': [
         [0, 0],
         [+1, 0],
+        [+1, -1],
+        [0, +2],
+        [+1, +2],
+    ],
+    // 180도 회전
+    '0→2': [
+        [0, 0],
+        [0, +1],
         [+1, +1],
+        [-1, +1],
+        [+1, 0],
+        [-1, 0],
+    ],
+    '2→0': [
+        [0, 0],
+        [0, -1],
+        [-1, -1],
+        [+1, -1],
+        [-1, 0],
+        [+1, 0],
+    ],
+    '1→3': [
+        [0, 0],
+        [+1, 0],
+        [+1, +2],
+        [+1, +1],
+        [0, +2],
+        [0, +1],
+    ],
+    '3→1': [
+        [0, 0],
+        [-1, 0],
+        [-1, -2],
+        [-1, -1],
         [0, -2],
-        [+1, -2],
+        [0, -1],
     ],
 };
 
@@ -316,6 +349,39 @@ const WALL_KICK_I = {
         [-1, +2],
         [+2, -1],
     ],
+    // 180도 회전
+    '0→2': [
+        [0, 0],
+        [0, +1],
+        [+1, +1],
+        [-1, +1],
+        [+1, 0],
+        [-1, 0],
+    ],
+    '2→0': [
+        [0, 0],
+        [0, -1],
+        [-1, -1],
+        [+1, -1],
+        [-1, 0],
+        [+1, 0],
+    ],
+    '1→3': [
+        [0, 0],
+        [+1, 0],
+        [+1, +2],
+        [+1, +1],
+        [0, +2],
+        [0, +1],
+    ],
+    '3→1': [
+        [0, 0],
+        [-1, 0],
+        [-1, -2],
+        [-1, -1],
+        [0, -2],
+        [0, -1],
+    ],
 };
 
 // 점수 테이블
@@ -343,15 +409,11 @@ const T_SPIN_MINI_SCORE = {
 // ===== 보드 =====
 class Board {
     constructor() {
-        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () =>
-            Array(COLS).fill(0)
-        );
+        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () => Array(COLS).fill(0));
     }
 
     reset() {
-        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () =>
-            Array(COLS).fill(0)
-        );
+        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () => Array(COLS).fill(0));
     }
 
     isValid(shape, offsetX, offsetY) {
@@ -395,6 +457,10 @@ class Board {
             }
         }
         return clearedCount;
+    }
+
+    isPerfectClear() {
+        return this.grid.every((row) => row.every((c) => c === 0));
     }
 
     isGameOver(piece) {
@@ -498,8 +564,8 @@ function detectTSpin(board, piece, rotated, kickIndex) {
 
     if (!frontFilled) {
         // 미니 T-스핀 (앞 코너가 2개 다 막히지 않음)
-        // 단, 5번째 킥(kickIndex === 4) 이면 정식 T-스핀으로 승격
-        if (kickIndex === 4) return 'TSPIN';
+        // 단, 5번째 킥 이상(kickIndex >= 4)이면 정식 T-스핀으로 승격
+        if (kickIndex >= 4) return 'TSPIN';
         return 'TSPIN_MINI';
     }
     return 'TSPIN';
@@ -721,12 +787,23 @@ class TetrisGame {
 
     // ===== 회전 (SRS) =====
     _rotate(dir) {
-        // dir: 1 = 시계, -1 = 반시계
+        // dir: 1 = 시계, -1 = 반시계, 2 = 180도
         if (!this.currentPiece) return;
         const p = this.currentPiece;
         const prevRot = p.rotation;
         const newRot = (((p.rotation + dir) % 4) + 4) % 4;
         const key = `${prevRot}→${newRot}`;
+
+        // O 피스는 회전해도 동일하므로 wall kick 불필요
+        if (p.type === 'O') {
+            p.rotation = newRot;
+            this.lastRotated = true;
+            this.lastKickIndex = 0;
+            this.lastTSpinType = null;
+            this._resetLockIfOnGround();
+            AudioEngine.SFX.rotate();
+            return;
+        }
 
         const kicks = p.type === 'I' ? WALL_KICK_I[key] : WALL_KICK_JLSTZ[key];
         if (!kicks) return;
@@ -764,9 +841,12 @@ class TetrisGame {
         const tSpinType = this.lastTSpinType;
 
         const cleared = this.board.clearLines();
+        const isPerfectClear = cleared > 0 && this.board.isPerfectClear();
 
         // 라인 클리어 사운드
-        if (cleared > 0) {
+        if (isPerfectClear) {
+            AudioEngine.SFX.perfectClear();
+        } else if (cleared > 0) {
             if (tSpinType === 'TSPIN') {
                 AudioEngine.SFX.tSpin();
             } else if (tSpinType === 'TSPIN_MINI') {
@@ -782,7 +862,7 @@ class TetrisGame {
             AudioEngine.SFX.lock();
         }
 
-        this._processScore(cleared, tSpinType);
+        this._processScore(cleared, tSpinType, isPerfectClear);
 
         this.isOnGround = false;
         this.lockDelay = 0;
@@ -802,23 +882,20 @@ class TetrisGame {
     }
 
     // ===== 점수 계산 =====
-    _processScore(cleared, tSpinType) {
+    _processScore(cleared, tSpinType, isPerfectClear = false) {
         const isTSpin = tSpinType === 'TSPIN';
         const isMini = tSpinType === 'TSPIN_MINI';
         const isTetris = cleared === 4;
         const isB2B = isTetris || isTSpin; // B2B 조건
+
+        const PERFECT_CLEAR_SCORE = { 1: 800, 2: 1200, 3: 1800, 4: 2000 };
 
         let points = 0;
         let actionText = '';
 
         if (isTSpin) {
             points = T_SPIN_SCORE[cleared] || T_SPIN_SCORE[0];
-            const labels = [
-                'T-SPIN!',
-                'T-SPIN\nSINGLE',
-                'T-SPIN\nDOUBLE',
-                'T-SPIN\nTRIPLE',
-            ];
+            const labels = ['T-SPIN!', 'T-SPIN\nSINGLE', 'T-SPIN\nDOUBLE', 'T-SPIN\nTRIPLE'];
             actionText = labels[Math.min(cleared, 3)];
         } else if (isMini) {
             points = T_SPIN_MINI_SCORE[Math.min(cleared, 2)];
@@ -840,6 +917,13 @@ class TetrisGame {
             this.b2b = 0;
         } else if (!isB2B && cleared > 0) {
             this.b2b = -1;
+        }
+
+        // 싹쓸이(Perfect Clear) 보너스
+        if (isPerfectClear) {
+            const pcBonus = PERFECT_CLEAR_SCORE[Math.min(cleared, 4)] || 800;
+            points += pcBonus;
+            actionText = 'PERFECT\nCLEAR!';
         }
 
         // 콤보 보너스
@@ -915,12 +999,7 @@ class TetrisGame {
         for (let r = HIDDEN_ROWS; r < ROWS + HIDDEN_ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (this.board.grid[r][c]) {
-                    this._drawCell(
-                        ctx,
-                        c,
-                        r - HIDDEN_ROWS,
-                        COLORS[this.board.grid[r][c]]
-                    );
+                    this._drawCell(ctx, c, r - HIDDEN_ROWS, COLORS[this.board.grid[r][c]]);
                 }
             }
         }
@@ -1016,12 +1095,7 @@ class TetrisGame {
 
     _renderHold() {
         const cellSize = 24;
-        this.holdCtx.clearRect(
-            0,
-            0,
-            this.holdCanvas.width,
-            this.holdCanvas.height
-        );
+        this.holdCtx.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
         if (!this.heldPiece) return;
         const data = TETROMINOES[this.heldPiece];
         const shape = data.shapes[0];
@@ -1055,31 +1129,24 @@ class TetrisGame {
 
     _renderNext() {
         const cellSize = 20;
-        this.nextCtx.clearRect(
-            0,
-            0,
-            this.nextCanvas.width,
-            this.nextCanvas.height
-        );
-        const nexts = this.bag.peek(5);
+        this.nextCtx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+        const nexts = this.bag.peek(4);
         for (let i = 0; i < nexts.length; i++) {
             const type = nexts[i];
             const data = TETROMINOES[type];
             const shape = data.shapes[0];
             const rows = shape.length;
             const cols = shape[0].length;
-            const slotH = 96;
-            const slotY = i * slotH;
-            const offX = Math.floor(
-                (this.nextCanvas.width / cellSize - cols) / 2
-            );
-            const baseY = slotY + Math.floor((slotH / cellSize - rows) / 2);
+            const slotH = 96; // 픽셀 단위
+            const slotY = i * slotH; // 픽셀 단위
+            const offX = Math.floor((this.nextCanvas.width / cellSize - cols) / 2); // 셀 단위
+            const offY = Math.floor((slotH / cellSize - rows) / 2); // 셀 단위 (슬롯 내 수직 중앙)
 
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     if (!shape[r][c]) continue;
                     const px = (offX + c) * cellSize;
-                    const py = (baseY + r) * cellSize;
+                    const py = slotY + (offY + r) * cellSize; // 픽셀 + 셀→픽셀
                     const s = cellSize;
                     this.nextCtx.fillStyle = data.color;
                     this.nextCtx.beginPath();
@@ -1096,18 +1163,11 @@ class TetrisGame {
 
     // ===== UI 업데이트 =====
     _updateUI() {
-        document.getElementById('score-display').textContent =
-            this.score.toLocaleString();
+        document.getElementById('score-display').textContent = this.score.toLocaleString();
         document.getElementById('level-display').textContent = this.level;
         document.getElementById('lines-display').textContent = this.lines;
-        document.getElementById('combo-display').textContent = Math.max(
-            0,
-            this.combo
-        );
-        document.getElementById('b2b-display').textContent = Math.max(
-            0,
-            this.b2b
-        );
+        document.getElementById('combo-display').textContent = Math.max(0, this.combo);
+        document.getElementById('b2b-display').textContent = Math.max(0, this.b2b);
     }
 
     _updateTimer() {
@@ -1116,9 +1176,7 @@ class TetrisGame {
         const totalSec = Math.floor(this.elapsed / 1000);
         const min = Math.floor(totalSec / 60);
         const sec = totalSec % 60;
-        document.getElementById('time-display').textContent = `${min}:${sec
-            .toString()
-            .padStart(2, '0')}`;
+        document.getElementById('time-display').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
     }
 
     // ===== 게임 오버 / 클리어 =====
@@ -1131,9 +1189,7 @@ class TetrisGame {
 
         document.getElementById('overlay-title').textContent = 'GAME OVER';
         document.getElementById('overlay-title').style.color = 'var(--danger)';
-        document.getElementById(
-            'overlay-score'
-        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById('overlay-score').textContent = `SCORE: ${this.score.toLocaleString()}`;
         document.getElementById('overlay-time').textContent = '';
         document.getElementById('game-over-overlay').classList.remove('hidden');
     }
@@ -1149,18 +1205,12 @@ class TetrisGame {
         const min = Math.floor(totalSec / 60);
         const sec = totalSec % 60;
         const ms = Math.floor((this.elapsed % 1000) / 10);
-        const timeStr = `${min}:${sec.toString().padStart(2, '0')}.${ms
-            .toString()
-            .padStart(2, '0')}`;
+        const timeStr = `${min}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 
         document.getElementById('overlay-title').textContent = '40 LINE CLEAR!';
         document.getElementById('overlay-title').style.color = 'var(--success)';
-        document.getElementById(
-            'overlay-score'
-        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
-        document.getElementById(
-            'overlay-time'
-        ).textContent = `TIME: ${timeStr}`;
+        document.getElementById('overlay-score').textContent = `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById('overlay-time').textContent = `TIME: ${timeStr}`;
         document.getElementById('game-over-overlay').classList.remove('hidden');
     }
 
@@ -1181,7 +1231,6 @@ class TetrisGame {
 
         switch (key) {
             case 'ArrowLeft':
-            case 'KeyA':
                 e.preventDefault();
                 this._moveLeft();
                 this._startDAS('left');
@@ -1207,6 +1256,10 @@ class TetrisGame {
                 e.preventDefault();
                 this._rotate(-1);
                 break;
+            case 'KeyA':
+                e.preventDefault();
+                this._rotate(2);
+                break;
             case 'Space':
                 e.preventDefault();
                 this._hardDrop();
@@ -1226,16 +1279,7 @@ class TetrisGame {
     _onKeyUp(e) {
         const key = e.code;
         delete this.heldKeys[key];
-        if (
-            [
-                'ArrowLeft',
-                'KeyA',
-                'ArrowRight',
-                'KeyD',
-                'ArrowDown',
-                'KeyS',
-            ].includes(key)
-        ) {
+        if (['ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD', 'ArrowDown', 'KeyS'].includes(key)) {
             this._stopDAS();
         }
     }
@@ -1284,9 +1328,7 @@ const Auth = {
 
     login(email, password) {
         const users = this.getUsers();
-        const user = users.find(
-            (u) => u.email === email && u.password === password
-        );
+        const user = users.find((u) => u.email === email && u.password === password);
         if (!user)
             return {
                 ok: false,
@@ -1297,15 +1339,11 @@ const Auth = {
     },
 
     signup(nickname, email, password) {
-        if (!nickname || nickname.length < 2)
-            return { ok: false, msg: '닉네임은 2자 이상이어야 합니다.' };
-        if (!email.includes('@'))
-            return { ok: false, msg: '올바른 이메일을 입력하세요.' };
-        if (password.length < 6)
-            return { ok: false, msg: '비밀번호는 6자 이상이어야 합니다.' };
+        if (!nickname || nickname.length < 2) return { ok: false, msg: '닉네임은 2자 이상이어야 합니다.' };
+        if (!email.includes('@')) return { ok: false, msg: '올바른 이메일을 입력하세요.' };
+        if (password.length < 6) return { ok: false, msg: '비밀번호는 6자 이상이어야 합니다.' };
         const users = this.getUsers();
-        if (users.find((u) => u.email === email))
-            return { ok: false, msg: '이미 사용중인 이메일입니다.' };
+        if (users.find((u) => u.email === email)) return { ok: false, msg: '이미 사용중인 이메일입니다.' };
         const user = { nickname, email, password };
         users.push(user);
         this.saveUsers(users);
@@ -1323,9 +1361,7 @@ const game = new TetrisGame();
 let currentMode = null;
 
 function showScreen(id) {
-    document
-        .querySelectorAll('.screen')
-        .forEach((s) => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
 }
 
@@ -1351,8 +1387,7 @@ function startGame(mode) {
     currentMode = mode;
     showScreen('game-screen');
     document.getElementById('game-over-overlay').classList.add('hidden');
-    document.getElementById('time-box').style.display =
-        mode === '40line' ? '' : '';
+    document.getElementById('time-box').style.display = mode === '40line' ? '' : '';
     AudioEngine.init();
     AudioEngine.BGM.stop();
     setTimeout(() => AudioEngine.BGM.play(), 100);
@@ -1362,12 +1397,8 @@ function startGame(mode) {
 }
 
 // 버튼 이벤트
-document
-    .getElementById('btn-40line')
-    .addEventListener('click', () => startGame('40line'));
-document
-    .getElementById('btn-infinity')
-    .addEventListener('click', () => startGame('infinity'));
+document.getElementById('btn-40line').addEventListener('click', () => startGame('40line'));
+document.getElementById('btn-infinity').addEventListener('click', () => startGame('infinity'));
 document.getElementById('btn-back').addEventListener('click', () => {
     if (game.rafId) cancelAnimationFrame(game.rafId);
     clearInterval(game.timerInterval);
@@ -1468,16 +1499,10 @@ document.querySelector('.modal-backdrop').addEventListener('click', () => {
 // 탭 전환
 document.querySelectorAll('.modal-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-        document
-            .querySelectorAll('.modal-tab')
-            .forEach((t) => t.classList.remove('active'));
+        document.querySelectorAll('.modal-tab').forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
-        document
-            .querySelectorAll('.tab-content')
-            .forEach((c) => c.classList.add('hidden'));
-        document
-            .getElementById(`tab-${tab.dataset.tab}`)
-            .classList.remove('hidden');
+        document.querySelectorAll('.tab-content').forEach((c) => c.classList.add('hidden'));
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.remove('hidden');
     });
 });
 

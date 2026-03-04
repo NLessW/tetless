@@ -70,14 +70,7 @@ const AudioEngine = (() => {
     }
 
     // ===== 단순 음 재생 (SFX용) =====
-    function playTone(
-        freq,
-        type,
-        startTime,
-        duration,
-        gainVal,
-        fadeOut = true
-    ) {
+    function playTone(freq, type, startTime, duration, gainVal, fadeOut = true) {
         if (!ctx || muted) return;
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
@@ -190,14 +183,7 @@ const AudioEngine = (() => {
             if (!ctx || muted) return;
             resume();
             const t = ctx.currentTime;
-            const melody = [
-                n('C', 5),
-                n('E', 5),
-                n('G', 5),
-                n('C', 6),
-                n('E', 6),
-                n('G', 6),
-            ];
+            const melody = [n('C', 5), n('E', 5), n('G', 5), n('C', 6), n('E', 6), n('G', 6)];
             melody.forEach((f, i) => {
                 playTone(f, 'sawtooth', t + i * 0.05, 0.18, 0.35);
             });
@@ -210,13 +196,7 @@ const AudioEngine = (() => {
             resume();
             const t = ctx.currentTime;
             // 특수한 상승 아르페지오
-            const melody = [
-                n('D', 5),
-                n('Fs', 5),
-                n('A', 5),
-                n('D', 6),
-                n('Fs', 6),
-            ];
+            const melody = [n('D', 5), n('Fs', 5), n('A', 5), n('D', 6), n('Fs', 6)];
             melody.forEach((f, i) => {
                 playTone(f, 'sawtooth', t + i * 0.04, 0.16, 0.4);
             });
@@ -261,14 +241,7 @@ const AudioEngine = (() => {
             if (!ctx || muted) return;
             resume();
             const t = ctx.currentTime;
-            const melody = [
-                n('G', 5),
-                n('E', 5),
-                n('C', 5),
-                n('G', 4),
-                n('E', 4),
-                n('C', 4),
-            ];
+            const melody = [n('G', 5), n('E', 5), n('C', 5), n('G', 4), n('E', 4), n('C', 4)];
             melody.forEach((f, i) => {
                 playTone(f, 'sawtooth', t + i * 0.12, 0.18, 0.4);
             });
@@ -299,19 +272,29 @@ const AudioEngine = (() => {
             });
         },
 
+        // 싹쓸이 (Perfect Clear)
+        perfectClear() {
+            if (!ctx || muted) return;
+            resume();
+            const t = ctx.currentTime;
+            // 화려한 상승 아르페지오 + 반짝임
+            const melody = [n('C', 5), n('E', 5), n('G', 5), n('C', 6), n('E', 6), n('G', 6), n('C', 7)];
+            melody.forEach((f, i) => {
+                playTone(f, 'sawtooth', t + i * 0.06, 0.2, 0.5);
+            });
+            playNoise(t, 0.4, 0.6, 200);
+            playTone(n('C', 7), 'sine', t + 0.2, 0.4, 0.5);
+            playTone(n('E', 7), 'sine', t + 0.3, 0.4, 0.4);
+            playTone(n('G', 7), 'sine', t + 0.4, 0.4, 0.4);
+        },
+
         // 콤보
         combo(count) {
             if (!ctx || muted) return;
             resume();
             const t = ctx.currentTime;
             const baseFreq = n('C', 5) * Math.pow(1.05, count);
-            playTone(
-                baseFreq,
-                'square',
-                t,
-                0.1,
-                Math.min(0.2 + count * 0.03, 0.5)
-            );
+            playTone(baseFreq, 'square', t, 0.1, Math.min(0.2 + count * 0.03, 0.5));
         },
 
         // 메뉴 클릭
@@ -584,35 +567,24 @@ const AudioEngine = (() => {
         const beatDur = 60 / tempo;
 
         // 파트 A (8마디) + 파트 B (8마디)
-        const melA = scheduleSequence(
-            BGM_MELODY_A,
-            startTime,
-            tempo,
-            'square',
-            0.22,
-            false
-        );
+        const melA = scheduleSequence(BGM_MELODY_A, startTime, tempo, 'square', 0.22, false);
         scheduleSequence(BGM_BASS_A, startTime, tempo, 'triangle', 0.28, true);
         schedulePercussion(startTime, tempo, 8);
 
         const partBStart = melA.endTime;
-        const melB = scheduleSequence(
-            BGM_MELODY_B,
-            partBStart,
-            tempo,
-            'square',
-            0.22,
-            false
-        );
+        const melB = scheduleSequence(BGM_MELODY_B, partBStart, tempo, 'square', 0.22, false);
         scheduleSequence(BGM_BASS_B, partBStart, tempo, 'triangle', 0.28, true);
         schedulePercussion(partBStart, tempo, 8);
 
         const loopEnd = melB.endTime;
         const lookahead = loopEnd - ctx.currentTime - 0.5;
 
-        bgmScheduleTimer = setTimeout(() => {
-            if (bgmPlaying) scheduleBGMLoop(loopEnd);
-        }, Math.max(0, lookahead * 1000));
+        bgmScheduleTimer = setTimeout(
+            () => {
+                if (bgmPlaying) scheduleBGMLoop(loopEnd);
+            },
+            Math.max(0, lookahead * 1000),
+        );
     }
 
     // ===== BGM 제어 =====
@@ -633,10 +605,7 @@ const AudioEngine = (() => {
             }
             // GainNode를 통해 부드럽게 페이드아웃
             if (bgmGain) {
-                bgmGain.gain.setValueAtTime(
-                    bgmGain.gain.value,
-                    ctx.currentTime
-                );
+                bgmGain.gain.setValueAtTime(bgmGain.gain.value, ctx.currentTime);
                 bgmGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
                 setTimeout(() => {
                     if (bgmGain) bgmGain.gain.value = bgmVolume;

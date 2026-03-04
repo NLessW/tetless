@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
     <head>
         <meta charset="UTF-8" />
@@ -11,11 +11,8 @@
         <div id="main-screen" class="screen active">
             <div class="main-container">
                 <h1 class="game-title">
-                    <span class="title-t">T</span><span class="title-e">E</span
-                    ><span class="title-t2">T</span
-                    ><span class="title-l">L</span
-                    ><span class="title-e2">E</span
-                    ><span class="title-s">S</span
+                    <span class="title-t">T</span><span class="title-e">E</span><span class="title-t2">T</span
+                    ><span class="title-l">L</span><span class="title-e2">E</span><span class="title-s">S</span
                     ><span class="title-s2">S</span>
                 </h1>
                 <div class="main-buttons">
@@ -31,15 +28,9 @@
                     </button>
                 </div>
                 <div class="main-footer">
-                    <button class="btn-text" id="btn-login">
-                        로그인 / 회원가입
-                    </button>
-                    <span
-                        id="user-greeting"
-                        class="user-greeting hidden"></span>
-                    <button class="btn-text" id="btn-logout" class="hidden">
-                        로그아웃
-                    </button>
+                    <button class="btn-text" id="btn-login">로그인 / 회원가입</button>
+                    <span id="user-greeting" class="user-greeting hidden"></span>
+                    <button class="btn-text" id="btn-logout" class="hidden">로그아웃</button>
                 </div>
                 <div class="controls-hint">
                     <span>← → 이동</span>
@@ -48,27 +39,18 @@
                     <span>Space 하드 드롭</span>
                     <span>C 홀드</span>
                     <span>Z 반시계 회전</span>
+                    <span>A 180도 회전</span>
                     <span>M 뮤트</span>
                 </div>
                 <div class="sound-controls">
                     <button class="btn-mute" id="btn-mute-main">🔊 소리</button>
                     <div class="volume-row">
                         <label>BGM</label>
-                        <input
-                            type="range"
-                            id="vol-bgm"
-                            min="0"
-                            max="100"
-                            value="45" />
+                        <input type="range" id="vol-bgm" min="0" max="100" value="45" />
                     </div>
                     <div class="volume-row">
                         <label>SFX</label>
-                        <input
-                            type="range"
-                            id="vol-sfx"
-                            min="0"
-                            max="100"
-                            value="60" />
+                        <input type="range" id="vol-sfx" min="0" max="100" value="60" />
                     </div>
                 </div>
             </div>
@@ -81,10 +63,7 @@
                 <div class="side-panel left-panel">
                     <div class="panel-box">
                         <div class="panel-label">HOLD</div>
-                        <canvas
-                            id="hold-canvas"
-                            width="120"
-                            height="120"></canvas>
+                        <canvas id="hold-canvas" width="120" height="120"></canvas>
                     </div>
                     <div class="panel-box score-box">
                         <div class="panel-label">SCORE</div>
@@ -103,9 +82,7 @@
                         <div id="time-display" class="info-value">0:00</div>
                     </div>
                     <button class="btn-icon-only" id="btn-back">← 메뉴</button>
-                    <button class="btn-icon-only btn-mute" id="btn-mute-game">
-                        🔊 소리
-                    </button>
+                    <button class="btn-icon-only btn-mute" id="btn-mute-game">🔊 소리</button>
                 </div>
 
                 <!-- 게임 보드 -->
@@ -117,12 +94,8 @@
                             <h2 id="overlay-title">GAME OVER</h2>
                             <div id="overlay-score" class="overlay-score"></div>
                             <div id="overlay-time" class="overlay-time"></div>
-                            <button class="btn btn-primary" id="btn-retry">
-                                다시 하기
-                            </button>
-                            <button class="btn btn-secondary" id="btn-menu">
-                                메뉴로
-                            </button>
+                            <button class="btn btn-primary" id="btn-retry">다시 하기</button>
+                            <button class="btn btn-secondary" id="btn-menu">메뉴로</button>
                         </div>
                     </div>
                 </div>
@@ -131,10 +104,7 @@
                 <div class="side-panel right-panel">
                     <div class="panel-box">
                         <div class="panel-label">NEXT</div>
-                        <canvas
-                            id="next-canvas"
-                            width="120"
-                            height="500"></canvas>
+                        <canvas id="next-canvas" width="120" height="500"></canvas>
                     </div>
                     <div class="panel-box" id="combo-box">
                         <div class="panel-label">COMBO</div>
@@ -154,63 +124,36 @@
             <div class="modal-content">
                 <button class="modal-close" id="btn-close-modal">✕</button>
                 <div class="modal-tabs">
-                    <button class="modal-tab active" data-tab="login">
-                        로그인
-                    </button>
-                    <button class="modal-tab" data-tab="signup">
-                        회원가입
-                    </button>
+                    <button class="modal-tab active" data-tab="login">로그인</button>
+                    <button class="modal-tab" data-tab="signup">회원가입</button>
                 </div>
                 <div class="tab-content" id="tab-login">
                     <div class="form-group">
                         <label>이메일</label>
-                        <input
-                            type="email"
-                            id="login-email"
-                            placeholder="이메일 입력" />
+                        <input type="email" id="login-email" placeholder="이메일 입력" />
                     </div>
                     <div class="form-group">
                         <label>비밀번호</label>
-                        <input
-                            type="password"
-                            id="login-password"
-                            placeholder="비밀번호 입력" />
+                        <input type="password" id="login-password" placeholder="비밀번호 입력" />
                     </div>
                     <div class="form-error" id="login-error"></div>
-                    <button
-                        class="btn btn-primary full-width"
-                        id="btn-do-login">
-                        로그인
-                    </button>
+                    <button class="btn btn-primary full-width" id="btn-do-login">로그인</button>
                 </div>
                 <div class="tab-content hidden" id="tab-signup">
                     <div class="form-group">
                         <label>닉네임</label>
-                        <input
-                            type="text"
-                            id="signup-nickname"
-                            placeholder="닉네임 입력" />
+                        <input type="text" id="signup-nickname" placeholder="닉네임 입력" />
                     </div>
                     <div class="form-group">
                         <label>이메일</label>
-                        <input
-                            type="email"
-                            id="signup-email"
-                            placeholder="이메일 입력" />
+                        <input type="email" id="signup-email" placeholder="이메일 입력" />
                     </div>
                     <div class="form-group">
                         <label>비밀번호</label>
-                        <input
-                            type="password"
-                            id="signup-password"
-                            placeholder="비밀번호 (6자 이상)" />
+                        <input type="password" id="signup-password" placeholder="비밀번호 (6자 이상)" />
                     </div>
                     <div class="form-error" id="signup-error"></div>
-                    <button
-                        class="btn btn-primary full-width"
-                        id="btn-do-signup">
-                        회원가입
-                    </button>
+                    <button class="btn btn-primary full-width" id="btn-do-signup">회원가입</button>
                 </div>
             </div>
         </div>
