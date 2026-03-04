@@ -551,7 +551,7 @@ function detectTSpin(board, piece, rotated, kickIndex) {
 
     if (filledCorners < 3) return null; // 코너 3개 미만 → T-스핀 아님
 
-    // "앞쪽" 두 코너 판별 (T-피스가 향하는 방향)
+    // 앞쪽 두 코너 판별 (T-피스가 향하는 방향)
     // rot: 0=위, 1=오른쪽, 2=아래, 3=왼쪽
     const frontCorners = {
         0: [0, 1], // 좌상, 우상 (T가 위를 향함)
@@ -822,7 +822,6 @@ class TetrisGame {
                 return;
             }
         }
-        // 모든 킥 실패 → 회전 안 됨
     }
 
     _resetLockIfOnGround() {
@@ -1273,7 +1272,7 @@ class TetrisGame {
             const el = document.getElementById(id);
             if (!el) return;
 
-            // pointerdown: 터치/마우스 모두 처리 (가장 신뢰성 높음)
+            // pointerdown: 터치/마우스 모두 처리
             el.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1733,7 +1732,7 @@ function applyGameScale() {
         return;
     }
 
-    // 모바일 기준 치수 (CSS 미디어쿼리 값과 동일)
+    // 모바일 기준 치수
     const SIDE_W = 90;
     const CANVAS_W = 240,
         CANVAS_H = 480;
