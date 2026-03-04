@@ -1480,11 +1480,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('btn-login').addEventListener('click', () => {
-    document.getElementById('login-modal').classList.remove('hidden');
+    alert('준비중입니다');
+    //document.getElementById('login-modal').classList.remove('hidden');
 });
 
 document.getElementById('btn-close-modal').addEventListener('click', () => {
-    document.getElementById('login-modal').classList.add('hidden');
+    alert('준비중입니다');
+    //document.getElementById('login-modal').classList.add('hidden');
 });
 
 document.getElementById('modal-backdrop') &&
