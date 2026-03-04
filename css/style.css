@@ -316,7 +316,8 @@ body {
     border: 2px solid var(--border-color);
     border-radius: 4px;
     background: var(--bg-board);
-    box-shadow: 0 0 40px rgba(124, 77, 255, 0.15),
+    box-shadow:
+        0 0 40px rgba(124, 77, 255, 0.15),
         inset 0 0 60px rgba(0, 0, 0, 0.8);
 }
 
@@ -329,7 +330,9 @@ body {
     font-size: 28px;
     font-weight: 900;
     color: #fff;
-    text-shadow: 0 0 20px var(--accent), 0 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow:
+        0 0 20px var(--accent),
+        0 2px 4px rgba(0, 0, 0, 0.8);
     letter-spacing: 2px;
     text-align: center;
     pointer-events: none;
@@ -568,6 +571,173 @@ body {
     #hold-canvas {
         width: 110px;
         height: 110px;
+    }
+}
+
+/* ===== 모바일 컨트롤 ===== */
+.mobile-controls {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(8, 8, 14, 0.97);
+    border-top: 1px solid var(--border-color);
+    padding: 10px 16px 14px;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+/* 터치 기기에서 게임 화면일 때 표시 */
+@media (pointer: coarse), (hover: none), (max-width: 768px) {
+    .mobile-controls.visible {
+        display: flex;
+    }
+}
+
+.mc-movement {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.mc-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mc-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mc-row {
+    display: flex;
+    gap: 6px;
+}
+
+.mc-btn {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    text-align: center;
+    transition:
+        background 0.1s,
+        transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: auto;
+}
+
+.mc-btn:active {
+    background: rgba(124, 77, 255, 0.35);
+    border-color: var(--accent);
+    transform: scale(0.92);
+}
+
+.mc-soft {
+    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.25);
+    color: var(--accent2);
+}
+
+.mc-hard {
+    width: 64px;
+    height: 64px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(255, 68, 68, 0.12);
+    border-color: rgba(255, 68, 68, 0.35);
+    color: var(--danger);
+    border-radius: 14px;
+}
+
+.mc-180 {
+    font-size: 13px;
+    background: rgba(204, 68, 255, 0.1);
+    border-color: rgba(204, 68, 255, 0.3);
+    color: var(--color-T);
+}
+
+.mc-hold {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(255, 136, 0, 0.1);
+    border-color: rgba(255, 136, 0, 0.3);
+    color: var(--color-L);
+}
+
+@media (pointer: coarse), (hover: none) {
+    .mobile-controls {
+        display: flex;
+    }
+    #game-screen {
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-bottom: 160px;
+    }
+    .game-layout {
+        height: auto;
+        padding: 8px;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .side-panel {
+        width: 90px;
+        gap: 6px;
+    }
+    .panel-box {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+    .panel-label {
+        font-size: 8px;
+        letter-spacing: 2px;
+    }
+    .score-value {
+        font-size: 16px;
+    }
+    .info-value {
+        font-size: 15px;
+    }
+    #game-canvas {
+        width: 240px;
+        height: 480px;
+    }
+    #hold-canvas {
+        width: 80px;
+        height: 80px;
+    }
+    #next-canvas {
+        width: 90px;
+        height: 380px;
+    }
+    .btn-icon-only {
+        font-size: 10px;
+        padding: 6px 8px;
     }
 }
 

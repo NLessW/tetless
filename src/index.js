@@ -1218,6 +1218,67 @@ class TetrisGame {
     _bindEvents() {
         document.addEventListener('keydown', (e) => this._onKeyDown(e));
         document.addEventListener('keyup', (e) => this._onKeyUp(e));
+        this._bindMobileControls();
+    }
+
+    _bindMobileControls() {
+        const onTouch = (id, onStart, onEnd) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            // pointerdown: 터치/마우스 모두 처리 (가장 신뢰성 높음)
+            el.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                el.setPointerCapture(e.pointerId);
+                if (this.gameOver) return;
+                onStart();
+                this._render();
+                this._renderHold();
+                this._renderNext();
+            });
+
+            if (onEnd) {
+                el.addEventListener('pointerup', (e) => {
+                    e.preventDefault();
+                    onEnd();
+                });
+                el.addEventListener('pointercancel', (e) => {
+                    e.preventDefault();
+                    onEnd();
+                });
+            }
+        };
+
+        onTouch(
+            'mc-left',
+            () => {
+                this._moveLeft();
+                this._startDAS('left');
+            },
+            () => this._stopDAS(),
+        );
+        onTouch(
+            'mc-right',
+            () => {
+                this._moveRight();
+                this._startDAS('right');
+            },
+            () => this._stopDAS(),
+        );
+        onTouch(
+            'mc-soft',
+            () => {
+                this._softDrop(true);
+                this._startDAS('down');
+            },
+            () => this._stopDAS(),
+        );
+        onTouch('mc-hard', () => this._hardDrop());
+        onTouch('mc-cw', () => this._rotate(1));
+        onTouch('mc-ccw', () => this._rotate(-1));
+        onTouch('mc-180', () => this._rotate(2));
+        onTouch('mc-hold', () => this._hold());
     }
 
     _onKeyDown(e) {
@@ -1363,6 +1424,8 @@ let currentMode = null;
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    const mc = document.getElementById('mobile-controls');
+    if (mc) mc.classList.toggle('visible', id === 'game-screen');
 }
 
 function updateMainUI() {
@@ -1480,12 +1543,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('btn-login').addEventListener('click', () => {
-    alert('준비중입니다');
+    alert('준비중입니다.');
     //document.getElementById('login-modal').classList.remove('hidden');
 });
 
 document.getElementById('btn-close-modal').addEventListener('click', () => {
-    alert('준비중입니다');
+    alert('준비중입니다.');
     //document.getElementById('login-modal').classList.add('hidden');
 });
 
