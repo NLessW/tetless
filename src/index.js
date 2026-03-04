@@ -1462,13 +1462,6 @@ function startGame(mode) {
 // 버튼 이벤트
 document.getElementById('btn-40line').addEventListener('click', () => startGame('40line'));
 document.getElementById('btn-infinity').addEventListener('click', () => startGame('infinity'));
-document.getElementById('btn-back').addEventListener('click', () => {
-    if (game.rafId) cancelAnimationFrame(game.rafId);
-    clearInterval(game.timerInterval);
-    game._stopDAS();
-    AudioEngine.BGM.stop();
-    showScreen('main-screen');
-});
 
 document.getElementById('btn-retry').addEventListener('click', () => {
     document.getElementById('game-over-overlay').classList.add('hidden');
@@ -1487,12 +1480,13 @@ document.getElementById('btn-menu').addEventListener('click', () => {
 
 // 로그인 모달
 
-// 뮤트 버튼 (2개)
+// 뮤트 버튼
 function updateMuteButtons() {
     const muted = AudioEngine.isMuted();
     const label = muted ? '🔇 없음' : '🔊 소리';
     document.getElementById('btn-mute-main').textContent = label;
-    document.getElementById('btn-mute-game').textContent = label;
+    const bm = document.getElementById('btn-mute-m');
+    if (bm) bm.textContent = label;
 }
 
 document.getElementById('btn-mute-main').addEventListener('click', () => {
@@ -1501,7 +1495,21 @@ document.getElementById('btn-mute-main').addEventListener('click', () => {
     updateMuteButtons();
 });
 
-document.getElementById('btn-mute-game').addEventListener('click', () => {
+// 모바일 하단 네비 버튼
+const _backAction = () => {
+    if (game.rafId) cancelAnimationFrame(game.rafId);
+    clearInterval(game.timerInterval);
+    game._stopDAS();
+    AudioEngine.BGM.stop();
+    showScreen('main-screen');
+};
+document.getElementById('btn-back-m').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    AudioEngine.SFX.menuClick();
+    _backAction();
+});
+document.getElementById('btn-mute-m').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     AudioEngine.toggleMute();
     updateMuteButtons();
 });
@@ -1526,7 +1534,6 @@ document.addEventListener('keydown', (e) => {
 [
     'btn-40line',
     'btn-infinity',
-    'btn-back',
     'btn-retry',
     'btn-menu',
     'btn-login',
@@ -1614,4 +1621,89 @@ document.getElementById('signup-password').addEventListener('keydown', (e) => {
 
 // 초기화
 updateMainUI();
+
+// ===== 모바일 게임 레이아웃 자동 스케일 =====
+function applyGameScale() {
+    const IS_MOBILE =
+        window.matchMedia('(pointer: coarse)').matches ||
+        window.matchMedia('(hover: none)').matches ||
+        window.innerWidth <= 768;
+
+    // 데스크탑: 인라인 스타일 초기화
+    const resetIds = ['game-canvas', 'hold-canvas', 'next-canvas'];
+    if (!IS_MOBILE) {
+        resetIds.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.width = '';
+                el.style.height = '';
+            }
+        });
+        document.querySelectorAll('.side-panel').forEach((p) => {
+            p.style.width = '';
+        });
+        const layout = document.querySelector('.game-layout');
+        if (layout) {
+            layout.style.gap = '';
+            layout.style.padding = '';
+        }
+        return;
+    }
+
+    // 모바일 기준 치수 (CSS 미디어쿼리 값과 동일)
+    const SIDE_W = 90;
+    const CANVAS_W = 240,
+        CANVAS_H = 480;
+    const HOLD_W = 80,
+        HOLD_H = 80;
+    const NEXT_W = 90,
+        NEXT_H = 380;
+    const GAP = 8,
+        PAD = 8;
+    // 전체 레이아웃 폭 = PAD + SIDE + GAP + CANVAS + GAP + SIDE + PAD
+    const LAYOUT_W = PAD + SIDE_W + GAP + CANVAS_W + GAP + SIDE_W + PAD; // 452
+    const LAYOUT_H = CANVAS_H + PAD * 2; // 496
+    const CONTROLS_H = 175; // 하단 컨트롤 바 높이 (nav행 + 버튼행)
+    const SAFE_V = 16; // 상단 여백
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const scaleW = vw / LAYOUT_W;
+    const scaleH = (vh - CONTROLS_H - SAFE_V) / LAYOUT_H;
+    const scale = Math.min(scaleW, scaleH, 1.0);
+
+    const s = (v) => Math.round(v * scale) + 'px';
+
+    const gc = document.getElementById('game-canvas');
+    if (gc) {
+        gc.style.width = s(CANVAS_W);
+        gc.style.height = s(CANVAS_H);
+    }
+
+    const hc = document.getElementById('hold-canvas');
+    if (hc) {
+        hc.style.width = s(HOLD_W);
+        hc.style.height = s(HOLD_H);
+    }
+
+    const nc = document.getElementById('next-canvas');
+    if (nc) {
+        nc.style.width = s(NEXT_W);
+        nc.style.height = s(NEXT_H);
+    }
+
+    document.querySelectorAll('.side-panel').forEach((p) => {
+        p.style.width = s(SIDE_W);
+    });
+
+    const layout = document.querySelector('.game-layout');
+    if (layout) {
+        layout.style.gap = s(GAP);
+        layout.style.padding = s(PAD);
+    }
+}
+
+applyGameScale();
+window.addEventListener('resize', applyGameScale);
 showScreen('main-screen');

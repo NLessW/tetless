@@ -2,7 +2,7 @@
 <html lang="ko">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <title>TETLESS</title>
         <link rel="stylesheet" href="css/style.css" />
     </head>
@@ -82,8 +82,6 @@
                         <div class="panel-label">TIME</div>
                         <div id="time-display" class="info-value">0:00</div>
                     </div>
-                    <button class="btn-icon-only" id="btn-back">← 메뉴</button>
-                    <button class="btn-icon-only btn-mute" id="btn-mute-game">🔊 소리</button>
                 </div>
 
                 <!-- 게임 보드 -->
@@ -158,24 +156,32 @@
             </div>
         </div>
 
-        <!-- 모바일 컨트롤 (body 직계 자식 - 부모 클리핑 없음) -->
+        <!-- 모바일 컨트롤 (body 직계 자식) -->
         <div id="mobile-controls" class="mobile-controls">
-            <div class="mc-movement">
-                <button class="mc-btn" id="mc-left">◀</button>
-                <button class="mc-btn mc-soft" id="mc-soft">▼</button>
-                <button class="mc-btn" id="mc-right">▶</button>
+            <!-- 네비 행: 메뉴 / 볼륨 -->
+            <div class="mc-nav-row">
+                <button class="mc-nav-btn" id="btn-back-m">← 메뉴</button>
+                <button class="mc-nav-btn" id="btn-mute-m">🔊 소리</button>
             </div>
-            <div class="mc-center">
-                <button class="mc-btn mc-hard" id="mc-hard">HARD<br />DROP</button>
-            </div>
-            <div class="mc-actions">
-                <div class="mc-row">
-                    <button class="mc-btn" id="mc-ccw">↺</button>
-                    <button class="mc-btn" id="mc-cw">↻</button>
+            <!-- 조작 버튼 -->
+            <div class="mc-buttons-row">
+                <div class="mc-movement">
+                    <button class="mc-btn" id="mc-left">◀</button>
+                    <button class="mc-btn mc-soft" id="mc-soft">▼</button>
+                    <button class="mc-btn" id="mc-right">▶</button>
                 </div>
-                <div class="mc-row">
-                    <button class="mc-btn mc-180" id="mc-180">180°</button>
-                    <button class="mc-btn mc-hold" id="mc-hold">HOLD</button>
+                <div class="mc-center">
+                    <button class="mc-btn mc-hard" id="mc-hard">HARD<br />DROP</button>
+                </div>
+                <div class="mc-actions">
+                    <div class="mc-row">
+                        <button class="mc-btn" id="mc-ccw">↺</button>
+                        <button class="mc-btn" id="mc-cw">↻</button>
+                    </div>
+                    <div class="mc-row">
+                        <button class="mc-btn mc-180" id="mc-180">180°</button>
+                        <button class="mc-btn mc-hold" id="mc-hold">HOLD</button>
+                    </div>
                 </div>
             </div>
         </div>
