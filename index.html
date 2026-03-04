@@ -97,6 +97,16 @@
                             <button class="btn btn-secondary" id="btn-menu">메뉴로</button>
                         </div>
                     </div>
+                    <!-- 일시정지 오버레이 -->
+                    <div id="pause-overlay" class="game-overlay hidden">
+                        <div class="overlay-content">
+                            <h2 class="pause-title">PAUSED</h2>
+                            <div id="pause-countdown" class="pause-countdown"></div>
+                            <button class="btn btn-primary" id="btn-resume">▶ 계속하기</button>
+                            <button class="btn btn-secondary" id="btn-restart">재시작</button>
+                            <button class="btn btn-secondary" id="btn-to-main">메인으로</button>
+                        </div>
+                    </div>
                 </div>
                 <!-- 오른쪽 패널 -->
                 <div class="side-panel right-panel">
@@ -161,6 +171,7 @@
             <!-- 네비 행: 메뉴 / 볼륨 -->
             <div class="mc-nav-row">
                 <button class="mc-nav-btn" id="btn-back-m">← 메뉴</button>
+                <button class="mc-nav-btn mc-nav-pause" id="btn-pause-m">⏸</button>
                 <button class="mc-nav-btn" id="btn-mute-m">🔊 소리</button>
             </div>
             <!-- 조작 버튼 -->

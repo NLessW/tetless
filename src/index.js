@@ -1221,6 +1221,53 @@ class TetrisGame {
         this._bindMobileControls();
     }
 
+    // ===== 일시정지 =====
+    _pause() {
+        if (this.gameOver || this.paused) return;
+        this.paused = true;
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+        clearInterval(this.timerInterval);
+        this._stopDAS();
+        document.getElementById('pause-overlay').classList.remove('hidden');
+        document.getElementById('pause-countdown').textContent = '';
+        const pb = document.getElementById('btn-pause-m');
+        if (pb) pb.textContent = '▶';
+    }
+
+    _resume() {
+        if (!this.paused) return;
+        const overlay = document.getElementById('pause-overlay');
+        const countEl = document.getElementById('pause-countdown');
+        let count = 3;
+        countEl.textContent = count;
+        const triggerAnim = () => {
+            countEl.style.animation = 'none';
+            void countEl.offsetWidth;
+            countEl.style.animation = '';
+        };
+        triggerAnim();
+        const tick = setInterval(() => {
+            count--;
+            if (count <= 0) {
+                clearInterval(tick);
+                countEl.textContent = '';
+                overlay.classList.add('hidden');
+                this.paused = false;
+                this.lastTime = performance.now();
+                if (this.mode === '40line' && !this.gameOver) {
+                    this.timerInterval = setInterval(() => this._updateTimer(), 100);
+                }
+                this.rafId = requestAnimationFrame((t) => this._loop(t));
+                const pb = document.getElementById('btn-pause-m');
+                if (pb) pb.textContent = '⏸';
+            } else {
+                countEl.textContent = count;
+                triggerAnim();
+            }
+        }, 1000);
+    }
+
     _bindMobileControls() {
         const onTouch = (id, onStart, onEnd) => {
             const el = document.getElementById(id);
@@ -1282,7 +1329,15 @@ class TetrisGame {
     }
 
     _onKeyDown(e) {
-        if (this.gameOver) return;
+        // ESC: 일시정지 토글
+        if (e.code === 'Escape') {
+            if (this.gameOver) return;
+            if (this.paused) this._resume();
+            else this._pause();
+            return;
+        }
+
+        if (this.gameOver || this.paused) return;
 
         const key = e.code;
 
@@ -1450,6 +1505,7 @@ function startGame(mode) {
     currentMode = mode;
     showScreen('game-screen');
     document.getElementById('game-over-overlay').classList.add('hidden');
+    document.getElementById('pause-overlay').classList.add('hidden');
     document.getElementById('time-box').style.display = mode === '40line' ? '' : '';
     AudioEngine.init();
     AudioEngine.BGM.stop();
@@ -1512,6 +1568,33 @@ document.getElementById('btn-mute-m').addEventListener('pointerdown', (e) => {
     e.preventDefault();
     AudioEngine.toggleMute();
     updateMuteButtons();
+});
+
+// 모바일 일시정지 버튼
+document.getElementById('btn-pause-m').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (game.paused) game._resume();
+    else game._pause();
+});
+
+// 일시정지 오버레이 버튼
+document.getElementById('btn-resume').addEventListener('click', () => game._resume());
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+    document.getElementById('pause-overlay').classList.add('hidden');
+    game.paused = false;
+    game._stopDAS();
+    startGame(currentMode);
+});
+
+document.getElementById('btn-to-main').addEventListener('click', () => {
+    document.getElementById('pause-overlay').classList.add('hidden');
+    game.paused = false;
+    if (game.rafId) cancelAnimationFrame(game.rafId);
+    clearInterval(game.timerInterval);
+    game._stopDAS();
+    AudioEngine.BGM.stop();
+    showScreen('main-screen');
 });
 
 // 볼륨 슬라이더

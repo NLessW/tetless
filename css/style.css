@@ -411,6 +411,48 @@ body {
     letter-spacing: 2px;
 }
 
+/* 일시정지 오버레이 */
+.pause-title {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(124, 77, 255, 0.7);
+}
+
+.pause-countdown {
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--warning);
+    text-shadow: 0 0 30px rgba(255, 204, 0, 0.8);
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: countPop 0.9s ease;
+}
+
+@keyframes countPop {
+    0% {
+        transform: scale(1.6);
+        opacity: 0.3;
+    }
+    30% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.mc-nav-pause {
+    font-size: 16px;
+    color: var(--accent);
+    border-color: rgba(124, 77, 255, 0.4);
+}
+
 /* 홀드/넥스트 캔버스 */
 #hold-canvas,
 #next-canvas {
