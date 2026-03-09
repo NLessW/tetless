@@ -646,12 +646,21 @@ const AudioEngine = (() => {
         return muted;
     }
 
+    function getBgmVolume() {
+        return bgmVolume;
+    }
+    function getSfxVolume() {
+        return sfxVolume;
+    }
+
     return {
         init,
         resume,
         SFX,
         BGM,
         setBgmVolume,
+        getSfxVolume,
+        getBgmVolume,
         setSfxVolume,
         toggleMute,
         isMuted,

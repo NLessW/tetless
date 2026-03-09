@@ -1,8 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <title>TETLESS</title>
         <link rel="stylesheet" href="css/style.css" />
     </head>
@@ -11,8 +13,11 @@
         <div id="main-screen" class="screen active">
             <div class="main-container">
                 <h1 class="game-title">
-                    <span class="title-t">T</span><span class="title-e">E</span><span class="title-t2">T</span
-                    ><span class="title-l">L</span><span class="title-e2">E</span><span class="title-s">S</span
+                    <span class="title-t">T</span><span class="title-e">E</span
+                    ><span class="title-t2">T</span
+                    ><span class="title-l">L</span
+                    ><span class="title-e2">E</span
+                    ><span class="title-s">S</span
                     ><span class="title-s2">S</span>
                 </h1>
                 <h2>Ver. Demo</h2>
@@ -29,9 +34,15 @@
                     </button>
                 </div>
                 <div class="main-footer">
-                    <button class="btn-text" id="btn-login">로그인 / 회원가입</button>
-                    <span id="user-greeting" class="user-greeting hidden"></span>
-                    <button class="btn-text" id="btn-logout" class="hidden">로그아웃</button>
+                    <button class="btn-text" id="btn-login">
+                        로그인 / 회원가입
+                    </button>
+                    <span
+                        id="user-greeting"
+                        class="user-greeting hidden"></span>
+                    <button class="btn-text" id="btn-logout" class="hidden">
+                        로그아웃
+                    </button>
                 </div>
                 <div class="controls-hint">
                     <span>← → 이동</span>
@@ -44,14 +55,27 @@
                     <span>M 뮤트</span>
                 </div>
                 <div class="sound-controls">
+                    <button class="btn-mute" id="btn-option-main">
+                        ⚙ 옵션
+                    </button>
                     <button class="btn-mute" id="btn-mute-main">🔊 소리</button>
                     <div class="volume-row">
                         <label>BGM</label>
-                        <input type="range" id="vol-bgm" min="0" max="100" value="45" />
+                        <input
+                            type="range"
+                            id="vol-bgm"
+                            min="0"
+                            max="100"
+                            value="45" />
                     </div>
                     <div class="volume-row">
                         <label>SFX</label>
-                        <input type="range" id="vol-sfx" min="0" max="100" value="60" />
+                        <input
+                            type="range"
+                            id="vol-sfx"
+                            min="0"
+                            max="100"
+                            value="60" />
                     </div>
                 </div>
             </div>
@@ -64,7 +88,10 @@
                 <div class="side-panel left-panel">
                     <div class="panel-box">
                         <div class="panel-label">HOLD</div>
-                        <canvas id="hold-canvas" width="120" height="120"></canvas>
+                        <canvas
+                            id="hold-canvas"
+                            width="120"
+                            height="120"></canvas>
                     </div>
                     <div class="panel-box score-box">
                         <div class="panel-label">SCORE</div>
@@ -93,18 +120,30 @@
                             <h2 id="overlay-title">GAME OVER</h2>
                             <div id="overlay-score" class="overlay-score"></div>
                             <div id="overlay-time" class="overlay-time"></div>
-                            <button class="btn btn-primary" id="btn-retry">다시 하기</button>
-                            <button class="btn btn-secondary" id="btn-menu">메뉴로</button>
+                            <button class="btn btn-primary" id="btn-retry">
+                                다시 하기
+                            </button>
+                            <button class="btn btn-secondary" id="btn-menu">
+                                메뉴로
+                            </button>
                         </div>
                     </div>
                     <!-- 일시정지 오버레이 -->
                     <div id="pause-overlay" class="game-overlay hidden">
                         <div class="overlay-content">
                             <h2 class="pause-title">PAUSED</h2>
-                            <div id="pause-countdown" class="pause-countdown"></div>
-                            <button class="btn btn-primary" id="btn-resume">▶ 계속하기</button>
-                            <button class="btn btn-secondary" id="btn-restart">재시작</button>
-                            <button class="btn btn-secondary" id="btn-to-main">메인으로</button>
+                            <div
+                                id="pause-countdown"
+                                class="pause-countdown"></div>
+                            <button class="btn btn-primary" id="btn-resume">
+                                ▶ 계속하기
+                            </button>
+                            <button class="btn btn-secondary" id="btn-restart">
+                                재시작
+                            </button>
+                            <button class="btn btn-secondary" id="btn-to-main">
+                                메인으로
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -112,7 +151,10 @@
                 <div class="side-panel right-panel">
                     <div class="panel-box">
                         <div class="panel-label">NEXT</div>
-                        <canvas id="next-canvas" width="120" height="500"></canvas>
+                        <canvas
+                            id="next-canvas"
+                            width="120"
+                            height="500"></canvas>
                     </div>
                     <div class="panel-box" id="combo-box">
                         <div class="panel-label">COMBO</div>
@@ -126,42 +168,234 @@
             </div>
         </div>
 
+        <!-- 옵션 모달 -->
+        <div id="option-modal" class="modal hidden">
+            <div class="modal-backdrop" id="option-backdrop"></div>
+            <div class="modal-content option-modal-content">
+                <button class="modal-close" id="btn-close-option">✕</button>
+                <h3 class="option-title">⚙ 옵션</h3>
+
+                <div class="option-section">
+                    <div class="option-section-label">감도 설정</div>
+
+                    <!-- ARR -->
+                    <div class="option-row">
+                        <div class="option-row-header">
+                            <span class="option-name"
+                                >ARR
+                                <span class="option-name-sub"
+                                    >(자동 반복 속도)</span
+                                ></span
+                            >
+                            <span
+                                class="option-value-badge"
+                                id="arr-val-display"
+                                >1</span
+                            >
+                        </div>
+                        <div class="option-slider-row">
+                            <span class="option-edge">빠름</span>
+                            <input
+                                type="range"
+                                id="opt-arr"
+                                min="0"
+                                max="5"
+                                step="1"
+                                value="1" />
+                            <span class="option-edge">느림</span>
+                        </div>
+                    </div>
+
+                    <!-- DAS -->
+                    <div class="option-row">
+                        <div class="option-row-header">
+                            <span class="option-name"
+                                >DAS
+                                <span class="option-name-sub"
+                                    >(입력 인식 지연)</span
+                                ></span
+                            >
+                            <span
+                                class="option-value-badge"
+                                id="das-val-display"
+                                >10</span
+                            >
+                        </div>
+                        <div class="option-slider-row">
+                            <span class="option-edge">빠름</span>
+                            <input
+                                type="range"
+                                id="opt-das"
+                                min="1"
+                                max="20"
+                                step="1"
+                                value="10" />
+                            <span class="option-edge">느림</span>
+                        </div>
+                    </div>
+
+                    <!-- DCD -->
+                    <div class="option-row">
+                        <div class="option-row-header">
+                            <span class="option-name"
+                                >DCD
+                                <span class="option-name-sub"
+                                    >(DAS 후 딜레이 캔슬)</span
+                                ></span
+                            >
+                            <span
+                                class="option-value-badge"
+                                id="dcd-val-display"
+                                >10</span
+                            >
+                        </div>
+                        <div class="option-slider-row">
+                            <span class="option-edge">빠름</span>
+                            <input
+                                type="range"
+                                id="opt-dcd"
+                                min="0"
+                                max="20"
+                                step="1"
+                                value="10" />
+                            <span class="option-edge">느림</span>
+                        </div>
+                    </div>
+
+                    <!-- SDF -->
+                    <div class="option-row">
+                        <div class="option-row-header">
+                            <span class="option-name"
+                                >SDF
+                                <span class="option-name-sub"
+                                    >(소프트 드롭 배율)</span
+                                ></span
+                            >
+                            <span
+                                class="option-value-badge"
+                                id="sdf-val-display"
+                                >5×</span
+                            >
+                        </div>
+                        <div class="option-slider-row">
+                            <span class="option-edge">느림</span>
+                            <input
+                                type="range"
+                                id="opt-sdf"
+                                min="0"
+                                max="8"
+                                step="1"
+                                value="2" />
+                            <span class="option-edge">∞</span>
+                        </div>
+                        <div class="option-sdf-hint">
+                            5× → 10× → 20× → 40× → ∞
+                        </div>
+                    </div>
+                </div>
+
+                <div class="option-section">
+                    <div class="option-section-label">사운드</div>
+                    <div class="volume-row">
+                        <label>BGM</label>
+                        <input
+                            type="range"
+                            id="vol-bgm-opt"
+                            min="0"
+                            max="100"
+                            value="45" />
+                        <span class="vol-num" id="vol-bgm-num">45</span>
+                    </div>
+                    <div class="volume-row">
+                        <label>SFX</label>
+                        <input
+                            type="range"
+                            id="vol-sfx-opt"
+                            min="0"
+                            max="100"
+                            value="60" />
+                        <span class="vol-num" id="vol-sfx-num">60</span>
+                    </div>
+                    <button
+                        class="btn-mute"
+                        id="btn-mute-opt"
+                        style="margin-top: 4px">
+                        🔊 소리
+                    </button>
+                </div>
+
+                <button
+                    class="btn btn-primary full-width"
+                    id="btn-option-save"
+                    style="margin-top: 8px">
+                    저장
+                </button>
+            </div>
+        </div>
+
         <!-- 로그인 모달 -->
         <div id="login-modal" class="modal hidden">
             <div class="modal-backdrop"></div>
             <div class="modal-content">
                 <button class="modal-close" id="btn-close-modal">✕</button>
                 <div class="modal-tabs">
-                    <button class="modal-tab active" data-tab="login">로그인</button>
-                    <button class="modal-tab" data-tab="signup">회원가입</button>
+                    <button class="modal-tab active" data-tab="login">
+                        로그인
+                    </button>
+                    <button class="modal-tab" data-tab="signup">
+                        회원가입
+                    </button>
                 </div>
                 <div class="tab-content" id="tab-login">
                     <div class="form-group">
                         <label>이메일</label>
-                        <input type="email" id="login-email" placeholder="이메일 입력" />
+                        <input
+                            type="email"
+                            id="login-email"
+                            placeholder="이메일 입력" />
                     </div>
                     <div class="form-group">
                         <label>비밀번호</label>
-                        <input type="password" id="login-password" placeholder="비밀번호 입력" />
+                        <input
+                            type="password"
+                            id="login-password"
+                            placeholder="비밀번호 입력" />
                     </div>
                     <div class="form-error" id="login-error"></div>
-                    <button class="btn btn-primary full-width" id="btn-do-login">로그인</button>
+                    <button
+                        class="btn btn-primary full-width"
+                        id="btn-do-login">
+                        로그인
+                    </button>
                 </div>
                 <div class="tab-content hidden" id="tab-signup">
                     <div class="form-group">
                         <label>닉네임</label>
-                        <input type="text" id="signup-nickname" placeholder="닉네임 입력" />
+                        <input
+                            type="text"
+                            id="signup-nickname"
+                            placeholder="닉네임 입력" />
                     </div>
                     <div class="form-group">
                         <label>이메일</label>
-                        <input type="email" id="signup-email" placeholder="이메일 입력" />
+                        <input
+                            type="email"
+                            id="signup-email"
+                            placeholder="이메일 입력" />
                     </div>
                     <div class="form-group">
                         <label>비밀번호</label>
-                        <input type="password" id="signup-password" placeholder="비밀번호 (6자 이상)" />
+                        <input
+                            type="password"
+                            id="signup-password"
+                            placeholder="비밀번호 (6자 이상)" />
                     </div>
                     <div class="form-error" id="signup-error"></div>
-                    <button class="btn btn-primary full-width" id="btn-do-signup">회원가입</button>
+                    <button
+                        class="btn btn-primary full-width"
+                        id="btn-do-signup">
+                        회원가입
+                    </button>
                 </div>
             </div>
         </div>
@@ -171,7 +405,9 @@
             <!-- 네비 행: 메뉴 / 볼륨 -->
             <div class="mc-nav-row">
                 <button class="mc-nav-btn" id="btn-back-m">← 메뉴</button>
-                <button class="mc-nav-btn mc-nav-pause" id="btn-pause-m">⏸</button>
+                <button class="mc-nav-btn mc-nav-pause" id="btn-pause-m">
+                    ⏸
+                </button>
                 <button class="mc-nav-btn" id="btn-mute-m">🔊 소리</button>
             </div>
             <!-- 조작 버튼 -->
@@ -182,7 +418,9 @@
                     <button class="mc-btn" id="mc-right">▶</button>
                 </div>
                 <div class="mc-center">
-                    <button class="mc-btn mc-hard" id="mc-hard">HARD<br />DROP</button>
+                    <button class="mc-btn mc-hard" id="mc-hard">
+                        HARD<br />DROP
+                    </button>
                 </div>
                 <div class="mc-actions">
                     <div class="mc-row">
@@ -191,7 +429,9 @@
                     </div>
                     <div class="mc-row">
                         <button class="mc-btn mc-180" id="mc-180">180°</button>
-                        <button class="mc-btn mc-hold" id="mc-hold">HOLD</button>
+                        <button class="mc-btn mc-hold" id="mc-hold">
+                            HOLD
+                        </button>
                     </div>
                 </div>
             </div>

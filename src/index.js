@@ -409,11 +409,15 @@ const T_SPIN_MINI_SCORE = {
 // ===== 보드 =====
 class Board {
     constructor() {
-        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () => Array(COLS).fill(0));
+        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () =>
+            Array(COLS).fill(0)
+        );
     }
 
     reset() {
-        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () => Array(COLS).fill(0));
+        this.grid = Array.from({ length: ROWS + HIDDEN_ROWS }, () =>
+            Array(COLS).fill(0)
+        );
     }
 
     isValid(shape, offsetX, offsetY) {
@@ -571,6 +575,59 @@ function detectTSpin(board, piece, rotated, kickIndex) {
     return 'TSPIN';
 }
 
+// ===== 게임 설정 =====
+// ARR: 0~5 (0=즉시, 단위 frame 기반 → ms 변환: 값×16.7ms, 0이면 0ms)
+// DAS: 1~20 (단위 × 10ms, 최소 10ms ~ 최대 200ms)
+// DCD: 0~20 (DAS 완료 후 ARR 시작 전 추가 딜레이, 단위 × 5ms)
+// SDF: 슬라이더 0~8 → [5,6,8,10,15,20,30,40,Infinity] 배율
+const SDF_MAP = [5, 6, 8, 10, 15, 20, 30, 40, Infinity];
+const SDF_LABELS = ['5×', '6×', '8×', '10×', '15×', '20×', '30×', '40×', '∞'];
+
+const GameSettings = {
+    STORAGE_KEY: 'tetless_settings',
+
+    defaults: {
+        arr: 1, // 0~5
+        das: 10, // 1~20
+        dcd: 10, // 0~20
+        sdf: 2, // 0~8 (슬라이더 인덱스)
+    },
+
+    current: null,
+
+    load() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
+            this.current = saved
+                ? { ...this.defaults, ...saved }
+                : { ...this.defaults };
+        } catch {
+            this.current = { ...this.defaults };
+        }
+    },
+
+    save() {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.current));
+    },
+
+    // ARR(ms): 0이면 즉시(0ms), 아니면 값×16ms
+    getARRms() {
+        return this.current.arr === 0 ? 0 : this.current.arr * 16;
+    },
+    // DAS(ms): 값×10ms
+    getDASms() {
+        return this.current.das * 10;
+    },
+    // DCD(ms): 값×5ms
+    getDCDms() {
+        return this.current.dcd * 5;
+    },
+    // SDF 배율
+    getSDFMultiplier() {
+        return SDF_MAP[this.current.sdf];
+    },
+};
+
 // ===== 메인 게임 클래스 =====
 class TetrisGame {
     constructor() {
@@ -618,6 +675,7 @@ class TetrisGame {
 
         this.inputLock = false; // DAS/ARR 처리용
         this.dasTimer = null;
+        this.dcdTimer = null;
         this.arrTimer = null;
         this.heldKeys = {};
 
@@ -645,6 +703,7 @@ class TetrisGame {
         this.elapsed = 0;
         this.dropAccum = 0;
         this.heldKeys = {};
+        this.isSoftDropping = false;
 
         this._updateUI();
         this._spawnPiece();
@@ -668,9 +727,27 @@ class TetrisGame {
         this.lastTime = time;
 
         this.dropAccum += dt;
-        const dropInterval = this._dropInterval();
+        // 소프트 드롭 키 누르는 중이면 SDF 배율 적용
+        const sdf = this.isSoftDropping ? GameSettings.getSDFMultiplier() : 1;
+        const dropInterval = sdf === Infinity ? 0 : this._dropInterval() / sdf;
 
-        if (this.dropAccum >= dropInterval) {
+        if (sdf === Infinity) {
+            // 즉시 바닥
+            if (this.isSoftDropping) {
+                while (
+                    this.board.isValid(
+                        this.currentPiece.currentShape(),
+                        this.currentPiece.x,
+                        this.currentPiece.y + 1
+                    )
+                ) {
+                    this.currentPiece.y++;
+                    this.score += 1;
+                }
+                this.isOnGround = true;
+                this.isSoftDropping = false;
+            }
+        } else if (this.dropAccum >= dropInterval) {
             this.dropAccum -= dropInterval;
             this._softDrop(false);
         }
@@ -894,7 +971,12 @@ class TetrisGame {
 
         if (isTSpin) {
             points = T_SPIN_SCORE[cleared] || T_SPIN_SCORE[0];
-            const labels = ['T-SPIN!', 'T-SPIN\nSINGLE', 'T-SPIN\nDOUBLE', 'T-SPIN\nTRIPLE'];
+            const labels = [
+                'T-SPIN!',
+                'T-SPIN\nSINGLE',
+                'T-SPIN\nDOUBLE',
+                'T-SPIN\nTRIPLE',
+            ];
             actionText = labels[Math.min(cleared, 3)];
         } else if (isMini) {
             points = T_SPIN_MINI_SCORE[Math.min(cleared, 2)];
@@ -998,7 +1080,12 @@ class TetrisGame {
         for (let r = HIDDEN_ROWS; r < ROWS + HIDDEN_ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (this.board.grid[r][c]) {
-                    this._drawCell(ctx, c, r - HIDDEN_ROWS, COLORS[this.board.grid[r][c]]);
+                    this._drawCell(
+                        ctx,
+                        c,
+                        r - HIDDEN_ROWS,
+                        COLORS[this.board.grid[r][c]]
+                    );
                 }
             }
         }
@@ -1094,7 +1181,12 @@ class TetrisGame {
 
     _renderHold() {
         const cellSize = 24;
-        this.holdCtx.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
+        this.holdCtx.clearRect(
+            0,
+            0,
+            this.holdCanvas.width,
+            this.holdCanvas.height
+        );
         if (!this.heldPiece) return;
         const data = TETROMINOES[this.heldPiece];
         const shape = data.shapes[0];
@@ -1128,7 +1220,12 @@ class TetrisGame {
 
     _renderNext() {
         const cellSize = 20;
-        this.nextCtx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+        this.nextCtx.clearRect(
+            0,
+            0,
+            this.nextCanvas.width,
+            this.nextCanvas.height
+        );
         const nexts = this.bag.peek(4);
         for (let i = 0; i < nexts.length; i++) {
             const type = nexts[i];
@@ -1138,7 +1235,9 @@ class TetrisGame {
             const cols = shape[0].length;
             const slotH = 96; // 픽셀 단위
             const slotY = i * slotH; // 픽셀 단위
-            const offX = Math.floor((this.nextCanvas.width / cellSize - cols) / 2); // 셀 단위
+            const offX = Math.floor(
+                (this.nextCanvas.width / cellSize - cols) / 2
+            ); // 셀 단위
             const offY = Math.floor((slotH / cellSize - rows) / 2); // 셀 단위 (슬롯 내 수직 중앙)
 
             for (let r = 0; r < rows; r++) {
@@ -1162,11 +1261,18 @@ class TetrisGame {
 
     // ===== UI 업데이트 =====
     _updateUI() {
-        document.getElementById('score-display').textContent = this.score.toLocaleString();
+        document.getElementById('score-display').textContent =
+            this.score.toLocaleString();
         document.getElementById('level-display').textContent = this.level;
         document.getElementById('lines-display').textContent = this.lines;
-        document.getElementById('combo-display').textContent = Math.max(0, this.combo);
-        document.getElementById('b2b-display').textContent = Math.max(0, this.b2b);
+        document.getElementById('combo-display').textContent = Math.max(
+            0,
+            this.combo
+        );
+        document.getElementById('b2b-display').textContent = Math.max(
+            0,
+            this.b2b
+        );
     }
 
     _updateTimer() {
@@ -1175,7 +1281,9 @@ class TetrisGame {
         const totalSec = Math.floor(this.elapsed / 1000);
         const min = Math.floor(totalSec / 60);
         const sec = totalSec % 60;
-        document.getElementById('time-display').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+        document.getElementById('time-display').textContent = `${min}:${sec
+            .toString()
+            .padStart(2, '0')}`;
     }
 
     // ===== 게임 오버 / 클리어 =====
@@ -1188,7 +1296,9 @@ class TetrisGame {
 
         document.getElementById('overlay-title').textContent = 'GAME OVER';
         document.getElementById('overlay-title').style.color = 'var(--danger)';
-        document.getElementById('overlay-score').textContent = `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById(
+            'overlay-score'
+        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
         document.getElementById('overlay-time').textContent = '';
         document.getElementById('game-over-overlay').classList.remove('hidden');
     }
@@ -1204,12 +1314,18 @@ class TetrisGame {
         const min = Math.floor(totalSec / 60);
         const sec = totalSec % 60;
         const ms = Math.floor((this.elapsed % 1000) / 10);
-        const timeStr = `${min}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        const timeStr = `${min}:${sec.toString().padStart(2, '0')}.${ms
+            .toString()
+            .padStart(2, '0')}`;
 
         document.getElementById('overlay-title').textContent = '40 LINE CLEAR!';
         document.getElementById('overlay-title').style.color = 'var(--success)';
-        document.getElementById('overlay-score').textContent = `SCORE: ${this.score.toLocaleString()}`;
-        document.getElementById('overlay-time').textContent = `TIME: ${timeStr}`;
+        document.getElementById(
+            'overlay-score'
+        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById(
+            'overlay-time'
+        ).textContent = `TIME: ${timeStr}`;
         document.getElementById('game-over-overlay').classList.remove('hidden');
     }
 
@@ -1255,7 +1371,10 @@ class TetrisGame {
                 this.paused = false;
                 this.lastTime = performance.now();
                 if (this.mode === '40line' && !this.gameOver) {
-                    this.timerInterval = setInterval(() => this._updateTimer(), 100);
+                    this.timerInterval = setInterval(
+                        () => this._updateTimer(),
+                        100
+                    );
                 }
                 this.rafId = requestAnimationFrame((t) => this._loop(t));
                 const pb = document.getElementById('btn-pause-m');
@@ -1302,7 +1421,7 @@ class TetrisGame {
                 this._moveLeft();
                 this._startDAS('left');
             },
-            () => this._stopDAS(),
+            () => this._stopDAS()
         );
         onTouch(
             'mc-right',
@@ -1310,7 +1429,7 @@ class TetrisGame {
                 this._moveRight();
                 this._startDAS('right');
             },
-            () => this._stopDAS(),
+            () => this._stopDAS()
         );
         onTouch(
             'mc-soft',
@@ -1318,7 +1437,7 @@ class TetrisGame {
                 this._softDrop(true);
                 this._startDAS('down');
             },
-            () => this._stopDAS(),
+            () => this._stopDAS()
         );
         onTouch('mc-hard', () => this._hardDrop());
         onTouch('mc-cw', () => this._rotate(1));
@@ -1359,6 +1478,7 @@ class TetrisGame {
             case 'ArrowDown':
             case 'KeyS':
                 e.preventDefault();
+                this.isSoftDropping = true;
                 this._softDrop(true);
                 this._startDAS('down');
                 break;
@@ -1394,28 +1514,91 @@ class TetrisGame {
     _onKeyUp(e) {
         const key = e.code;
         delete this.heldKeys[key];
-        if (['ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD', 'ArrowDown', 'KeyS'].includes(key)) {
+        if (['ArrowDown', 'KeyS'].includes(key)) {
+            this.isSoftDropping = false;
+        }
+        if (
+            [
+                'ArrowLeft',
+                'KeyA',
+                'ArrowRight',
+                'KeyD',
+                'ArrowDown',
+                'KeyS',
+            ].includes(key)
+        ) {
             this._stopDAS();
         }
     }
 
-    // DAS (지연 자동 반복) / ARR (자동 반복 비율)
+    // DAS (지연 자동 반복) / ARR (자동 반복 비율) / DCD (딜레이 캔슬)
     _startDAS(dir) {
         this._stopDAS();
-        this.dasTimer = setTimeout(() => {
-            this.arrTimer = setInterval(() => {
-                if (dir === 'left') this._moveLeft();
-                else if (dir === 'right') this._moveRight();
-                else if (dir === 'down') this._softDrop(true);
+        const dasMs = GameSettings.getDASms();
+        const dcdMs = GameSettings.getDCDms();
+        const arrMs = GameSettings.getARRms();
+
+        const execARR = () => {
+            if (arrMs === 0) {
+                // ARR 0 → 즉시 벽까지 이동
+                if (dir === 'left') {
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x - 1,
+                            this.currentPiece.y
+                        )
+                    ) {
+                        this.currentPiece.x--;
+                        this.lastRotated = false;
+                        this._resetLockIfOnGround();
+                    }
+                }
+                if (dir === 'right') {
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x + 1,
+                            this.currentPiece.y
+                        )
+                    ) {
+                        this.currentPiece.x++;
+                        this.lastRotated = false;
+                        this._resetLockIfOnGround();
+                    }
+                }
+                if (dir === 'down') {
+                    this._softDrop(true);
+                }
                 this._render();
-            }, 50); // ARR: 50ms
-        }, 170); // DAS: 170ms
+            } else {
+                this.arrTimer = setInterval(() => {
+                    if (dir === 'left') this._moveLeft();
+                    else if (dir === 'right') this._moveRight();
+                    else if (dir === 'down') this._softDrop(true);
+                    this._render();
+                }, arrMs);
+            }
+        };
+
+        this.dasTimer = setTimeout(() => {
+            // DCD: DAS 완료 후 추가 딜레이
+            if (dcdMs > 0) {
+                this.dcdTimer = setTimeout(execARR, dcdMs);
+            } else {
+                execARR();
+            }
+        }, dasMs);
     }
 
     _stopDAS() {
         if (this.dasTimer) {
             clearTimeout(this.dasTimer);
             this.dasTimer = null;
+        }
+        if (this.dcdTimer) {
+            clearTimeout(this.dcdTimer);
+            this.dcdTimer = null;
         }
         if (this.arrTimer) {
             clearInterval(this.arrTimer);
@@ -1443,7 +1626,9 @@ const Auth = {
 
     login(email, password) {
         const users = this.getUsers();
-        const user = users.find((u) => u.email === email && u.password === password);
+        const user = users.find(
+            (u) => u.email === email && u.password === password
+        );
         if (!user)
             return {
                 ok: false,
@@ -1454,11 +1639,15 @@ const Auth = {
     },
 
     signup(nickname, email, password) {
-        if (!nickname || nickname.length < 2) return { ok: false, msg: '닉네임은 2자 이상이어야 합니다.' };
-        if (!email.includes('@')) return { ok: false, msg: '올바른 이메일을 입력하세요.' };
-        if (password.length < 6) return { ok: false, msg: '비밀번호는 6자 이상이어야 합니다.' };
+        if (!nickname || nickname.length < 2)
+            return { ok: false, msg: '닉네임은 2자 이상이어야 합니다.' };
+        if (!email.includes('@'))
+            return { ok: false, msg: '올바른 이메일을 입력하세요.' };
+        if (password.length < 6)
+            return { ok: false, msg: '비밀번호는 6자 이상이어야 합니다.' };
         const users = this.getUsers();
-        if (users.find((u) => u.email === email)) return { ok: false, msg: '이미 사용중인 이메일입니다.' };
+        if (users.find((u) => u.email === email))
+            return { ok: false, msg: '이미 사용중인 이메일입니다.' };
         const user = { nickname, email, password };
         users.push(user);
         this.saveUsers(users);
@@ -1476,7 +1665,9 @@ const game = new TetrisGame();
 let currentMode = null;
 
 function showScreen(id) {
-    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+    document
+        .querySelectorAll('.screen')
+        .forEach((s) => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     const mc = document.getElementById('mobile-controls');
     if (mc) mc.classList.toggle('visible', id === 'game-screen');
@@ -1505,7 +1696,8 @@ function startGame(mode) {
     showScreen('game-screen');
     document.getElementById('game-over-overlay').classList.add('hidden');
     document.getElementById('pause-overlay').classList.add('hidden');
-    document.getElementById('time-box').style.display = mode === '40line' ? '' : '';
+    document.getElementById('time-box').style.display =
+        mode === '40line' ? '' : '';
     AudioEngine.init();
     AudioEngine.BGM.stop();
     setTimeout(() => AudioEngine.BGM.play(), 100);
@@ -1515,8 +1707,12 @@ function startGame(mode) {
 }
 
 // 버튼 이벤트
-document.getElementById('btn-40line').addEventListener('click', () => startGame('40line'));
-document.getElementById('btn-infinity').addEventListener('click', () => startGame('infinity'));
+document
+    .getElementById('btn-40line')
+    .addEventListener('click', () => startGame('40line'));
+document
+    .getElementById('btn-infinity')
+    .addEventListener('click', () => startGame('infinity'));
 
 document.getElementById('btn-retry').addEventListener('click', () => {
     document.getElementById('game-over-overlay').classList.add('hidden');
@@ -1577,7 +1773,9 @@ document.getElementById('btn-pause-m').addEventListener('pointerdown', (e) => {
 });
 
 // 일시정지 오버레이 버튼
-document.getElementById('btn-resume').addEventListener('click', () => game._resume());
+document
+    .getElementById('btn-resume')
+    .addEventListener('click', () => game._resume());
 
 document.getElementById('btn-restart').addEventListener('click', () => {
     document.getElementById('pause-overlay').classList.add('hidden');
@@ -1653,10 +1851,16 @@ document.querySelector('.modal-backdrop').addEventListener('click', () => {
 // 탭 전환
 document.querySelectorAll('.modal-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-        document.querySelectorAll('.modal-tab').forEach((t) => t.classList.remove('active'));
+        document
+            .querySelectorAll('.modal-tab')
+            .forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach((c) => c.classList.add('hidden'));
-        document.getElementById(`tab-${tab.dataset.tab}`).classList.remove('hidden');
+        document
+            .querySelectorAll('.tab-content')
+            .forEach((c) => c.classList.add('hidden'));
+        document
+            .getElementById(`tab-${tab.dataset.tab}`)
+            .classList.remove('hidden');
     });
 });
 
@@ -1702,6 +1906,7 @@ document.getElementById('signup-password').addEventListener('keydown', (e) => {
 });
 
 // 초기화
+GameSettings.load();
 updateMainUI();
 
 // ===== 모바일 게임 레이아웃 자동 스케일 =====
@@ -1789,3 +1994,134 @@ function applyGameScale() {
 applyGameScale();
 window.addEventListener('resize', applyGameScale);
 showScreen('main-screen');
+
+// ===== 옵션 모달 =====
+function sdfLabel(idx) {
+    return SDF_LABELS[idx];
+}
+function arrLabel(v) {
+    return v === 0 ? '0 (즉시)' : String(v);
+}
+function dasLabel(v) {
+    return String(v);
+}
+function dcdLabel(v) {
+    return v === 0 ? '0 (없음)' : String(v);
+}
+
+function syncOptionUI() {
+    const s = GameSettings.current;
+    document.getElementById('opt-arr').value = s.arr;
+    document.getElementById('opt-das').value = s.das;
+    document.getElementById('opt-dcd').value = s.dcd;
+    document.getElementById('opt-sdf').value = s.sdf;
+    document.getElementById('arr-val-display').textContent = arrLabel(s.arr);
+    document.getElementById('das-val-display').textContent = dasLabel(s.das);
+    document.getElementById('dcd-val-display').textContent = dcdLabel(s.dcd);
+    document.getElementById('sdf-val-display').textContent = sdfLabel(s.sdf);
+
+    // 볼륨 동기화
+    const bgmVol = Math.round(AudioEngine.getBgmVolume() * 100);
+    const sfxVol = Math.round(AudioEngine.getSfxVolume() * 100);
+    document.getElementById('vol-bgm-opt').value = bgmVol;
+    document.getElementById('vol-sfx-opt').value = sfxVol;
+    document.getElementById('vol-bgm-num').textContent = bgmVol;
+    document.getElementById('vol-sfx-num').textContent = sfxVol;
+    updateMuteButtons();
+}
+
+function openOptionModal() {
+    syncOptionUI();
+    document.getElementById('option-modal').classList.remove('hidden');
+}
+function closeOptionModal() {
+    document.getElementById('option-modal').classList.add('hidden');
+}
+
+document
+    .getElementById('btn-option-main')
+    .addEventListener('click', openOptionModal);
+document
+    .getElementById('btn-option-game')
+    .addEventListener('click', openOptionModal);
+document
+    .getElementById('btn-close-option')
+    .addEventListener('click', closeOptionModal);
+document
+    .getElementById('option-backdrop')
+    .addEventListener('click', closeOptionModal);
+
+// 슬라이더 실시간 뱃지 업데이트
+document.getElementById('opt-arr').addEventListener('input', (e) => {
+    document.getElementById('arr-val-display').textContent = arrLabel(
+        +e.target.value
+    );
+});
+document.getElementById('opt-das').addEventListener('input', (e) => {
+    document.getElementById('das-val-display').textContent = dasLabel(
+        +e.target.value
+    );
+});
+document.getElementById('opt-dcd').addEventListener('input', (e) => {
+    document.getElementById('dcd-val-display').textContent = dcdLabel(
+        +e.target.value
+    );
+});
+document.getElementById('opt-sdf').addEventListener('input', (e) => {
+    document.getElementById('sdf-val-display').textContent = sdfLabel(
+        +e.target.value
+    );
+});
+
+// 옵션 볼륨 슬라이더
+document.getElementById('vol-bgm-opt').addEventListener('input', (e) => {
+    AudioEngine.setBgmVolume(e.target.value / 100);
+    document.getElementById('vol-bgm-num').textContent = e.target.value;
+    // 기존 메인화면 슬라이더도 동기화
+    const el = document.getElementById('vol-bgm');
+    if (el) el.value = e.target.value;
+});
+document.getElementById('vol-sfx-opt').addEventListener('input', (e) => {
+    AudioEngine.setSfxVolume(e.target.value / 100);
+    document.getElementById('vol-sfx-num').textContent = e.target.value;
+    const el = document.getElementById('vol-sfx');
+    if (el) el.value = e.target.value;
+});
+
+// 옵션 창 뮤트 버튼
+document.getElementById('btn-mute-opt').addEventListener('click', () => {
+    AudioEngine.toggleMute();
+    updateMuteButtons();
+    // btn-mute-opt 텍스트도 갱신
+    document.getElementById('btn-mute-opt').textContent = AudioEngine.isMuted()
+        ? '🔇 없음'
+        : '🔊 소리';
+});
+
+// updateMuteButtons 에 opt 버튼도 포함
+const _origUpdateMute = updateMuteButtons;
+// eslint-disable-next-line no-global-assign
+updateMuteButtons = function () {
+    _origUpdateMute();
+    const muted = AudioEngine.isMuted();
+    const optBtn = document.getElementById('btn-mute-opt');
+    if (optBtn) optBtn.textContent = muted ? '🔇 없음' : '🔊 소리';
+};
+
+// 저장 버튼
+document.getElementById('btn-option-save').addEventListener('click', () => {
+    GameSettings.current.arr = +document.getElementById('opt-arr').value;
+    GameSettings.current.das = +document.getElementById('opt-das').value;
+    GameSettings.current.dcd = +document.getElementById('opt-dcd').value;
+    GameSettings.current.sdf = +document.getElementById('opt-sdf').value;
+    GameSettings.save();
+    closeOptionModal();
+    // 저장 피드백 - 잠깐 버튼 텍스트 변경
+    const btn = document.getElementById('btn-option-save');
+    btn.textContent = '✓ 저장됨';
+    btn.style.background = 'linear-gradient(135deg, #1a6b3a, #116633)';
+    setTimeout(() => {
+        btn.textContent = '저장';
+        btn.style.background = '';
+    }, 1200);
+});
