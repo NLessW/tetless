@@ -116,6 +116,7 @@ python3 -m http.server 8080
 ```
 
 이후 브라우저에서 `http://localhost:8080` 접속.
+또는 `https://nlessw.github.io/tetless/` 접속.
 
 > **참고**: Web Audio API는 사용자 상호작용(클릭) 이후 활성화되므로  
 > 게임 시작 버튼을 누른 뒤 BGM이 재생됩니다.
