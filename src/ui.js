@@ -5,7 +5,9 @@
 // (게임 로직·오디오·인증 등과 무관한 DOM 조작만 담당)
 
 const game = new TetrisGame();
+const battleManager = new BattleManager(game);
 let currentMode = null;
+let currentBattleLevel = 1;
 
 // ===== 화면 전환 =====
 function showScreen(id) {
@@ -45,7 +47,22 @@ function startGame(mode) {
     AudioEngine.init();
     AudioEngine.BGM.stop();
     AudioEngine.BGM.play();
-    game.start(mode);
+    battleManager.stop();
+    game.start(mode, { battleEnabled: false });
+    game._renderHold();
+    game._renderNext();
+}
+
+function startBattle(level) {
+    currentMode = 'battle';
+    currentBattleLevel = level;
+    showScreen('game-screen');
+    document.getElementById('game-over-overlay').classList.add('hidden');
+    document.getElementById('pause-overlay').classList.add('hidden');
+    AudioEngine.init();
+    AudioEngine.BGM.stop();
+    AudioEngine.BGM.play();
+    battleManager.start(level);
     game._renderHold();
     game._renderNext();
 }
@@ -68,18 +85,29 @@ document
 document
     .getElementById('btn-infinity')
     .addEventListener('click', () => startGame('infinity'));
+document.getElementById('btn-battle').addEventListener('click', () => {
+    const raw = window.prompt('배틀 난이도를 선택하세요 (1, 2, 3)', '1');
+    const level = Number(raw);
+    if (![1, 2, 3].includes(level)) return;
+    startBattle(level);
+});
 
 // ===== 게임 오버 오버레이 =====
 document.getElementById('btn-retry').addEventListener('click', () => {
     document.getElementById('game-over-overlay').classList.add('hidden');
     game._stopDAS();
-    startGame(currentMode);
+    if (currentMode === 'battle') {
+        startBattle(currentBattleLevel);
+    } else {
+        startGame(currentMode);
+    }
 });
 
 document.getElementById('btn-menu').addEventListener('click', () => {
     if (game.rafId) cancelAnimationFrame(game.rafId);
     clearInterval(game.timerInterval);
     game._stopDAS();
+    battleManager.stop();
     AudioEngine.BGM.stop();
     document.getElementById('game-over-overlay').classList.add('hidden');
     showScreen('main-screen');
@@ -105,6 +133,7 @@ const _backAction = () => {
     if (game.rafId) cancelAnimationFrame(game.rafId);
     clearInterval(game.timerInterval);
     game._stopDAS();
+    battleManager.stop();
     AudioEngine.BGM.stop();
     showScreen('main-screen');
 };
@@ -134,7 +163,11 @@ document.getElementById('btn-restart').addEventListener('click', () => {
     document.getElementById('pause-overlay').classList.add('hidden');
     game.paused = false;
     game._stopDAS();
-    startGame(currentMode);
+    if (currentMode === 'battle') {
+        startBattle(currentBattleLevel);
+    } else {
+        startGame(currentMode);
+    }
 });
 
 document.getElementById('btn-to-main').addEventListener('click', () => {
@@ -143,6 +176,7 @@ document.getElementById('btn-to-main').addEventListener('click', () => {
     if (game.rafId) cancelAnimationFrame(game.rafId);
     clearInterval(game.timerInterval);
     game._stopDAS();
+    battleManager.stop();
     AudioEngine.BGM.stop();
     showScreen('main-screen');
 });
@@ -159,6 +193,7 @@ document.addEventListener('keydown', (e) => {
 [
     'btn-40line',
     'btn-infinity',
+    'btn-battle',
     'btn-retry',
     'btn-menu',
     'btn-login',

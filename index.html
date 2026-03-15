@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
     <head>
         <meta charset="UTF-8" />
@@ -32,6 +32,15 @@
                         <span class="btn-label">INFINITY</span>
                         <span class="btn-desc">오리지널 테트리스</span>
                     </button>
+                    <button class="btn btn-secondary" id="btn-battle">
+                        <span class="btn-icon">⚔</span>
+                        <span class="btn-label">VS CPU</span>
+                        <span class="btn-desc">컴퓨터 배틀</span>
+                    </button>
+                </div>
+                <div class="controls-hint" style="margin-top: -22px">
+                    <span>배틀 난이도: 1 / 2 / 3</span>
+                    <span>버튼 클릭 시 선택</span>
                 </div>
                 <div class="main-footer">
                     <button class="btn-text" id="btn-login">
@@ -111,42 +120,68 @@
                     </div>
                 </div>
 
-                <!-- 게임 보드 -->
-                <div class="game-board-container">
-                    <canvas id="game-canvas" width="300" height="600"></canvas>
-                    <div id="action-text" class="action-text"></div>
-                    <div id="game-over-overlay" class="game-overlay hidden">
-                        <div class="overlay-content">
-                            <h2 id="overlay-title">GAME OVER</h2>
-                            <div id="overlay-score" class="overlay-score"></div>
-                            <div id="overlay-time" class="overlay-time"></div>
-                            <button class="btn btn-primary" id="btn-retry">
-                                다시 하기
-                            </button>
-                            <button class="btn btn-secondary" id="btn-menu">
-                                메뉴로
-                            </button>
+                <!-- 플레이어 보드 -->
+                <div class="game-board-wrap">
+                    <!-- 가비지 게이지 (배틀 모드) -->
+                    <div id="garbage-gauge" class="garbage-gauge hidden">
+                        <div
+                            id="garbage-gauge-fill"
+                            class="garbage-gauge-fill"></div>
+                        <div
+                            id="garbage-gauge-count"
+                            class="garbage-gauge-count">
+                            0
                         </div>
                     </div>
-                    <!-- 일시정지 오버레이 -->
-                    <div id="pause-overlay" class="game-overlay hidden">
-                        <div class="overlay-content">
-                            <h2 class="pause-title">PAUSED</h2>
-                            <div
-                                id="pause-countdown"
-                                class="pause-countdown"></div>
-                            <button class="btn btn-primary" id="btn-resume">
-                                ▶ 계속하기
-                            </button>
-                            <button class="btn btn-secondary" id="btn-restart">
-                                재시작
-                            </button>
-                            <button class="btn btn-secondary" id="btn-to-main">
-                                메인으로
-                            </button>
+                    <div class="game-board-container">
+                        <canvas
+                            id="game-canvas"
+                            width="300"
+                            height="600"></canvas>
+                        <div id="action-text" class="action-text"></div>
+                        <div id="game-over-overlay" class="game-overlay hidden">
+                            <div class="overlay-content">
+                                <h2 id="overlay-title">GAME OVER</h2>
+                                <div
+                                    id="overlay-score"
+                                    class="overlay-score"></div>
+                                <div
+                                    id="overlay-time"
+                                    class="overlay-time"></div>
+                                <button class="btn btn-primary" id="btn-retry">
+                                    다시 하기
+                                </button>
+                                <button class="btn btn-secondary" id="btn-menu">
+                                    메뉴로
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 일시정지 오버레이 -->
+                        <div id="pause-overlay" class="game-overlay hidden">
+                            <div class="overlay-content">
+                                <h2 class="pause-title">PAUSED</h2>
+                                <div
+                                    id="pause-countdown"
+                                    class="pause-countdown"></div>
+                                <button class="btn btn-primary" id="btn-resume">
+                                    ▶ 계속하기
+                                </button>
+                                <button
+                                    class="btn btn-secondary"
+                                    id="btn-restart">
+                                    재시작
+                                </button>
+                                <button
+                                    class="btn btn-secondary"
+                                    id="btn-to-main">
+                                    메인으로
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <!-- /.game-board-wrap -->
+
                 <!-- 오른쪽 패널 -->
                 <div class="side-panel right-panel">
                     <div class="panel-box">
@@ -163,6 +198,58 @@
                     <div class="panel-box" id="b2b-box">
                         <div class="panel-label">B2B</div>
                         <div id="b2b-display" class="info-value">0</div>
+                    </div>
+                </div>
+
+                <!-- CPU 배틀 패널 (배틀 모드에서만 표시) -->
+                <div id="battle-panel" class="battle-panel hidden">
+                    <!-- CPU 보드 -->
+                    <div class="cpu-board-wrap">
+                        <div class="cpu-board-label">
+                            CPU LV.<span id="battle-diff-display">1</span>
+                        </div>
+                        <canvas
+                            id="cpu-canvas"
+                            width="150"
+                            height="300"></canvas>
+                        <div
+                            id="cpu-dead-overlay"
+                            class="cpu-dead-overlay hidden">
+                            DEAD
+                        </div>
+                    </div>
+                    <!-- 배틀 정보 -->
+                    <div class="battle-info-col">
+                        <div class="panel-box">
+                            <div class="panel-label">STATUS</div>
+                            <div
+                                id="battle-status-display"
+                                class="battle-status-value">
+                                IDLE
+                            </div>
+                        </div>
+                        <div class="panel-box">
+                            <div class="panel-label">↓ INCOMING</div>
+                            <div
+                                id="incoming-display"
+                                class="battle-num danger">
+                                0
+                            </div>
+                        </div>
+                        <div class="panel-box">
+                            <div class="panel-label">CPU ↓</div>
+                            <div
+                                id="cpu-incoming-display"
+                                class="battle-num warning">
+                                0
+                            </div>
+                        </div>
+                        <div class="panel-box">
+                            <div class="panel-label">CPU SENT</div>
+                            <div id="cpu-sent-display" class="battle-num">
+                                0
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -450,6 +537,7 @@
         <script src="src/auth.js"></script>
         <!-- 게임 클래스 -->
         <script src="src/game.js"></script>
+        <script src="src/battle.js"></script>
         <!-- UI 컨트롤러 (최후 로드) -->
         <script src="src/ui.js"></script>
     </body>

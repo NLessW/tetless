@@ -15,6 +15,7 @@ const COLORS = {
     Z: '#ff4444',
     J: '#4488ff',
     L: '#ff8800',
+    GARBAGE: '#666677',
     GHOST: 'rgba(255,255,255,0.12)',
 };
 
@@ -387,3 +388,47 @@ const SCORE_TABLE = { 0: 0, 1: 100, 2: 300, 3: 500, 4: 800 };
 
 const T_SPIN_SCORE = { 0: 400, 1: 800, 2: 1200, 3: 1600 };
 const T_SPIN_MINI_SCORE = { 0: 100, 1: 200, 2: 400 };
+
+// ===== 배틀 공격량 (TETR.IO 스타일 근사) =====
+function computeTetrioAttack({
+    cleared,
+    tSpinType = null,
+    b2bChain = 0,
+    combo = -1,
+    perfectClear = false,
+}) {
+    let attack = 0;
+
+    if (tSpinType === 'TSPIN') {
+        if (cleared === 1) attack = 2;
+        else if (cleared === 2) attack = 4;
+        else if (cleared === 3) attack = 6;
+        else attack = 0;
+    } else if (tSpinType === 'TSPIN_MINI') {
+        attack = cleared >= 1 ? 1 : 0;
+    } else {
+        if (cleared === 1) attack = 0;
+        else if (cleared === 2) attack = 1;
+        else if (cleared === 3) attack = 2;
+        else if (cleared === 4) attack = 4;
+    }
+
+    const isDifficult =
+        cleared > 0 &&
+        (cleared === 4 || tSpinType === 'TSPIN' || tSpinType === 'TSPIN_MINI');
+    if (isDifficult && b2bChain > 0) {
+        const b2bBonus = Math.min(4, 1 + Math.floor(Math.log2(b2bChain + 1)));
+        attack += b2bBonus;
+    }
+
+    if (combo > 0) {
+        const comboBonus = Math.min(4, Math.floor((combo + 1) / 2));
+        attack += comboBonus;
+    }
+
+    if (perfectClear && cleared > 0) {
+        attack += 10;
+    }
+
+    return Math.max(0, attack);
+}

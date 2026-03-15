@@ -250,6 +250,86 @@ body {
     padding: 20px;
 }
 
+/* ===== 배틀 패널 ===== */
+.battle-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    padding-top: 4px;
+    min-width: 100px;
+}
+
+.cpu-board-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.cpu-board-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    text-transform: uppercase;
+}
+
+#cpu-canvas {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-board);
+    display: block;
+}
+
+.cpu-dead-overlay {
+    position: absolute;
+    top: 22px; /* label 높이만큼 */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 68, 68, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.battle-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.battle-status-value {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    text-align: center;
+}
+
+.battle-num {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.battle-num.danger {
+    color: var(--danger);
+}
+.battle-num.warning {
+    color: var(--warning);
+}
+
 .side-panel {
     display: flex;
     flex-direction: column;
@@ -306,6 +386,69 @@ body {
 .btn-icon-only:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
+}
+
+/* 게임 보드 래퍼 (게이지 포함) */
+.game-board-wrap {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+/* 가비지 게이지 바 */
+.garbage-gauge {
+    width: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 4px;
+    cursor: default;
+}
+
+.garbage-gauge-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: linear-gradient(to top, #ff2222, #ff8800);
+    border-radius: 4px;
+    transition:
+        height 0.15s ease,
+        background 0.3s ease;
+}
+
+/* 10줄 이상이면 색상 강조 */
+.garbage-gauge.critical .garbage-gauge-fill {
+    background: linear-gradient(to top, #ff0000, #ff4444);
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+    animation: gaugePulse 0.4s ease infinite alternate;
+}
+
+@keyframes gaugePulse {
+    from {
+        opacity: 0.8;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.garbage-gauge-count {
+    position: relative;
+    z-index: 1;
+    font-size: 9px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 /* 게임 보드 */
@@ -1005,7 +1148,9 @@ body {
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
+    transition:
+        background 0.2s,
+        transform 0.1s;
     box-shadow: 0 0 6px rgba(124, 77, 255, 0.6);
 }
 

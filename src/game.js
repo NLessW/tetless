@@ -50,11 +50,18 @@ class TetrisGame {
         this.heldKeys = {};
         this.isSoftDropping = false;
 
+        this.pendingGarbage = 0;
+        this.garbageHoleColumn = Math.floor(Math.random() * COLS);
+        this.battleEnabled = false;
+        this.onAttack = null;
+        this.onDefeat = null;
+        this.onGarbageChange = null;
+
         this._bindEvents();
     }
 
     // ===== 시작 =====
-    start(mode) {
+    start(mode, options = {}) {
         this.mode = mode;
         this.board.reset();
         this.bag = new Bag();
@@ -75,6 +82,12 @@ class TetrisGame {
         this.dropAccum = 0;
         this.heldKeys = {};
         this.isSoftDropping = false;
+        this.pendingGarbage = 0;
+        this.garbageHoleColumn = Math.floor(Math.random() * COLS);
+        this.battleEnabled = Boolean(options.battleEnabled);
+        this.onAttack = options.onAttack || null;
+        this.onDefeat = options.onDefeat || null;
+        this.onGarbageChange = options.onGarbageChange || null;
 
         this._updateUI();
         this._spawnPiece();
@@ -86,6 +99,32 @@ class TetrisGame {
 
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = requestAnimationFrame((t) => this._loop(t));
+    }
+
+    receiveGarbage(lines) {
+        if (!lines || lines <= 0 || this.gameOver) return;
+        this.pendingGarbage += lines;
+        this._updateUI();
+        if (this.onGarbageChange) {
+            this.onGarbageChange(this.pendingGarbage);
+        }
+    }
+
+    _applyGarbage(lines) {
+        if (!lines || lines <= 0) return;
+        for (let i = 0; i < lines; i++) {
+            if (this.board.grid[0].some((c) => c !== 0)) {
+                this._triggerGameOver();
+                return;
+            }
+            if (Math.random() < 0.35) {
+                this.garbageHoleColumn = Math.floor(Math.random() * COLS);
+            }
+            const garbageLine = Array(COLS).fill('GARBAGE');
+            garbageLine[this.garbageHoleColumn] = 0;
+            this.board.grid.shift();
+            this.board.grid.push(garbageLine);
+        }
     }
 
     // ===== 게임 루프 =====
@@ -105,7 +144,7 @@ class TetrisGame {
                     this.board.isValid(
                         this.currentPiece.currentShape(),
                         this.currentPiece.x,
-                        this.currentPiece.y + 1
+                        this.currentPiece.y + 1,
                     )
                 ) {
                     this.currentPiece.y++;
@@ -124,7 +163,7 @@ class TetrisGame {
             const actuallyOnGround = !this.board.isValid(
                 this.currentPiece.currentShape(),
                 this.currentPiece.x,
-                this.currentPiece.y + 1
+                this.currentPiece.y + 1,
             );
             if (!actuallyOnGround) {
                 this.isOnGround = false;
@@ -294,7 +333,7 @@ class TetrisGame {
             this.board.isValid(
                 this.currentPiece.currentShape(),
                 this.currentPiece.x,
-                this.currentPiece.y + 1
+                this.currentPiece.y + 1,
             )
         ) {
             this.isOnGround = false;
@@ -320,7 +359,31 @@ class TetrisGame {
             AudioEngine.SFX.lock();
         }
 
-        this._processScore(cleared, tSpinType, isPerfectClear);
+        const combat = this._processScore(cleared, tSpinType, isPerfectClear);
+
+        if (this.battleEnabled) {
+            let outgoing = combat.attack;
+
+            if (outgoing > 0 && this.pendingGarbage > 0) {
+                const canceled = Math.min(outgoing, this.pendingGarbage);
+                outgoing -= canceled;
+                this.pendingGarbage -= canceled;
+            }
+
+            if (cleared === 0 && this.pendingGarbage > 0) {
+                const rise = Math.min(4, this.pendingGarbage);
+                this.pendingGarbage -= rise;
+                this._applyGarbage(rise);
+            }
+
+            if (outgoing > 0 && this.onAttack) {
+                this.onAttack(outgoing, combat);
+            }
+
+            if (this.onGarbageChange) {
+                this.onGarbageChange(this.pendingGarbage);
+            }
+        }
 
         this.isOnGround = false;
         this.lockDelay = 0;
@@ -415,6 +478,23 @@ class TetrisGame {
 
         if (actionText) this._showActionText(actionText);
         this._updateUI();
+
+        const attack = computeTetrioAttack({
+            cleared,
+            tSpinType,
+            b2bChain: Math.max(0, this.b2b),
+            combo: this.combo,
+            perfectClear: isPerfectClear,
+        });
+
+        return {
+            cleared,
+            tSpinType,
+            perfectClear: isPerfectClear,
+            attack,
+            combo: this.combo,
+            b2b: this.b2b,
+        };
     }
 
     _showActionText(text) {
@@ -455,7 +535,7 @@ class TetrisGame {
                         ctx,
                         c,
                         r - HIDDEN_ROWS,
-                        COLORS[this.board.grid[r][c]]
+                        COLORS[this.board.grid[r][c]],
                     );
                 }
             }
@@ -530,7 +610,7 @@ class TetrisGame {
             0,
             0,
             this.holdCanvas.width,
-            this.holdCanvas.height
+            this.holdCanvas.height,
         );
         if (!this.heldPiece) return;
         const data = TETROMINOES[this.heldPiece];
@@ -566,7 +646,7 @@ class TetrisGame {
             0,
             0,
             this.nextCanvas.width,
-            this.nextCanvas.height
+            this.nextCanvas.height,
         );
         const nexts = this.bag.peek(4);
         for (let i = 0; i < nexts.length; i++) {
@@ -578,7 +658,7 @@ class TetrisGame {
             const slotH = 96;
             const slotY = i * slotH;
             const offX = Math.floor(
-                (this.nextCanvas.width / cellSize - cols) / 2
+                (this.nextCanvas.width / cellSize - cols) / 2,
             );
             const offY = Math.floor((slotH / cellSize - rows) / 2);
             for (let r = 0; r < rows; r++) {
@@ -608,12 +688,33 @@ class TetrisGame {
         document.getElementById('lines-display').textContent = this.lines;
         document.getElementById('combo-display').textContent = Math.max(
             0,
-            this.combo
+            this.combo,
         );
         document.getElementById('b2b-display').textContent = Math.max(
             0,
-            this.b2b
+            this.b2b,
         );
+        const incomingEl = document.getElementById('incoming-display');
+        if (incomingEl) incomingEl.textContent = this.pendingGarbage;
+        this._updateGarbageGauge();
+    }
+
+    _updateGarbageGauge() {
+        const gauge = document.getElementById('garbage-gauge');
+        if (!gauge) return;
+        if (!this.battleEnabled) {
+            gauge.classList.add('hidden');
+            return;
+        }
+        gauge.classList.remove('hidden');
+        const lines = this.pendingGarbage;
+        // 최대 20줄 기준으로 퍼센트 계산
+        const pct = Math.min(100, (lines / 20) * 100);
+        const fill = document.getElementById('garbage-gauge-fill');
+        if (fill) fill.style.height = pct + '%';
+        const count = document.getElementById('garbage-gauge-count');
+        if (count) count.textContent = lines > 0 ? lines : '';
+        gauge.classList.toggle('critical', lines >= 10);
     }
 
     _updateTimer() {
@@ -637,11 +738,14 @@ class TetrisGame {
 
         document.getElementById('overlay-title').textContent = 'GAME OVER';
         document.getElementById('overlay-title').style.color = 'var(--danger)';
-        document.getElementById(
-            'overlay-score'
-        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById('overlay-score').textContent =
+            `SCORE: ${this.score.toLocaleString()}`;
         document.getElementById('overlay-time').textContent = '';
         document.getElementById('game-over-overlay').classList.remove('hidden');
+
+        if (this.battleEnabled && this.onDefeat) {
+            this.onDefeat();
+        }
     }
 
     _triggerClear() {
@@ -661,12 +765,10 @@ class TetrisGame {
 
         document.getElementById('overlay-title').textContent = '40 LINE CLEAR!';
         document.getElementById('overlay-title').style.color = 'var(--success)';
-        document.getElementById(
-            'overlay-score'
-        ).textContent = `SCORE: ${this.score.toLocaleString()}`;
-        document.getElementById(
-            'overlay-time'
-        ).textContent = `TIME: ${timeStr}`;
+        document.getElementById('overlay-score').textContent =
+            `SCORE: ${this.score.toLocaleString()}`;
+        document.getElementById('overlay-time').textContent =
+            `TIME: ${timeStr}`;
         document.getElementById('game-over-overlay').classList.remove('hidden');
     }
 
@@ -707,7 +809,7 @@ class TetrisGame {
                 if (this.mode === '40line' && !this.gameOver) {
                     this.timerInterval = setInterval(
                         () => this._updateTimer(),
-                        100
+                        100,
                     );
                 }
                 this.rafId = requestAnimationFrame((t) => this._loop(t));
@@ -759,7 +861,7 @@ class TetrisGame {
                 this._moveLeft();
                 this._startDAS('left');
             },
-            () => this._stopDAS()
+            () => this._stopDAS(),
         );
         onTouch(
             'mc-right',
@@ -767,7 +869,7 @@ class TetrisGame {
                 this._moveRight();
                 this._startDAS('right');
             },
-            () => this._stopDAS()
+            () => this._stopDAS(),
         );
         onTouch(
             'mc-soft',
@@ -775,7 +877,7 @@ class TetrisGame {
                 this._softDrop(true);
                 this._startDAS('down');
             },
-            () => this._stopDAS()
+            () => this._stopDAS(),
         );
         onTouch('mc-hard', () => this._hardDrop());
         onTouch('mc-cw', () => this._rotate(1));
@@ -870,7 +972,7 @@ class TetrisGame {
                         this.board.isValid(
                             this.currentPiece.currentShape(),
                             this.currentPiece.x - 1,
-                            this.currentPiece.y
+                            this.currentPiece.y,
                         )
                     ) {
                         this.currentPiece.x--;
@@ -883,7 +985,7 @@ class TetrisGame {
                         this.board.isValid(
                             this.currentPiece.currentShape(),
                             this.currentPiece.x + 1,
-                            this.currentPiece.y
+                            this.currentPiece.y,
                         )
                     ) {
                         this.currentPiece.x++;
