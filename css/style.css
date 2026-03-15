@@ -729,6 +729,94 @@ body {
     width: 100%;
 }
 
+/* ===== 난이도 선택 모달 ===== */
+.difficulty-modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 28px;
+    min-width: 300px;
+}
+
+.difficulty-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-top: -12px;
+}
+
+.difficulty-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.diff-btn {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    align-items: center;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        transform 0.1s;
+    color: var(--text-primary);
+    font-family: inherit;
+    text-align: left;
+}
+
+.diff-btn:hover {
+    background: rgba(124, 77, 255, 0.15);
+    border-color: var(--accent);
+    transform: translateX(3px);
+}
+
+.diff-btn:active {
+    transform: translateX(3px) scale(0.98);
+}
+
+.diff-num {
+    grid-row: 1 / 3;
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--accent2);
+    line-height: 1;
+    text-align: center;
+}
+
+#diff-btn-1 .diff-num {
+    color: var(--success);
+}
+#diff-btn-2 .diff-num {
+    color: var(--warning);
+}
+#diff-btn-3 .diff-num {
+    color: var(--danger);
+}
+
+.diff-label {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1.2;
+}
+
+.diff-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+
 /* ===== 반응형 ===== */
 @media (max-width: 700px) {
     .game-title {

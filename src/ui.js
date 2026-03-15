@@ -85,11 +85,26 @@ document
 document
     .getElementById('btn-infinity')
     .addEventListener('click', () => startGame('infinity'));
+// 난이도 모달 열기/닫기
+function openDifficultyModal() {
+    document.getElementById('difficulty-modal').classList.remove('hidden');
+}
+function closeDifficultyModal() {
+    document.getElementById('difficulty-modal').classList.add('hidden');
+}
+
 document.getElementById('btn-battle').addEventListener('click', () => {
-    const raw = window.prompt('배틀 난이도를 선택하세요 (1, 2, 3)', '1');
-    const level = Number(raw);
-    if (![1, 2, 3].includes(level)) return;
-    startBattle(level);
+    openDifficultyModal();
+});
+document.getElementById('difficulty-backdrop').addEventListener('click', () => {
+    closeDifficultyModal();
+});
+[1, 2, 3].forEach((lv) => {
+    document.getElementById(`diff-btn-${lv}`).addEventListener('click', () => {
+        AudioEngine.SFX.menuClick();
+        closeDifficultyModal();
+        startBattle(lv);
+    });
 });
 
 // ===== 게임 오버 오버레이 =====

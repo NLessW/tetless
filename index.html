@@ -38,10 +38,6 @@
                         <span class="btn-desc">컴퓨터 배틀</span>
                     </button>
                 </div>
-                <div class="controls-hint" style="margin-top: -22px">
-                    <span>배틀 난이도: 1 / 2 / 3</span>
-                    <span>버튼 클릭 시 선택</span>
-                </div>
                 <div class="main-footer">
                     <button class="btn-text" id="btn-login">
                         로그인 / 회원가입
@@ -417,6 +413,32 @@
                     style="margin-top: 8px">
                     저장
                 </button>
+            </div>
+        </div>
+
+        <!-- 배틀 난이도 선택 모달 -->
+        <div id="difficulty-modal" class="modal hidden">
+            <div class="modal-backdrop" id="difficulty-backdrop"></div>
+            <div class="modal-content difficulty-modal-content">
+                <h3 class="option-title">⚔ VS CPU</h3>
+                <p class="difficulty-desc">난이도를 선택하세요</p>
+                <div class="difficulty-buttons">
+                    <button class="diff-btn" id="diff-btn-1">
+                        <span class="diff-num">1</span>
+                        <span class="diff-label">EASY</span>
+                        <span class="diff-desc">입문자도 이길 수 있어요</span>
+                    </button>
+                    <button class="diff-btn" id="diff-btn-2">
+                        <span class="diff-num">2</span>
+                        <span class="diff-label">HARD</span>
+                        <span class="diff-desc">테트리스 위주로 공격해요</span>
+                    </button>
+                    <button class="diff-btn" id="diff-btn-3">
+                        <span class="diff-num">3</span>
+                        <span class="diff-label">EXPERT</span>
+                        <span class="diff-desc">T스핀까지 섞어서 공격해요</span>
+                    </button>
+                </div>
             </div>
         </div>
 

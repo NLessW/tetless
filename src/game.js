@@ -57,6 +57,14 @@ class TetrisGame {
         this.onDefeat = null;
         this.onGarbageChange = null;
 
+        // ===== 비주얼 이펙트 =====
+        this.particles = []; // 라인 클리어 파티클
+        this.flashAlpha = 0; // 보드 플래시 강도
+        this.flashColor = '#fff'; // 플래시 색상
+        this.shakeFrames = 0; // 쉐이크 남은 프레임
+        this.shakeIntensity = 0; // 쉐이크 강도
+        this.dangerAlpha = 0; // 위험 테두리 알파
+
         this._bindEvents();
     }
 
@@ -84,6 +92,10 @@ class TetrisGame {
         this.isSoftDropping = false;
         this.pendingGarbage = 0;
         this.garbageHoleColumn = Math.floor(Math.random() * COLS);
+        this.particles = [];
+        this.flashAlpha = 0;
+        this.shakeFrames = 0;
+        this.dangerAlpha = 0;
         this.battleEnabled = Boolean(options.battleEnabled);
         this.onAttack = options.onAttack || null;
         this.onDefeat = options.onDefeat || null;
@@ -105,6 +117,11 @@ class TetrisGame {
         if (!lines || lines <= 0 || this.gameOver) return;
         this.pendingGarbage += lines;
         this._updateUI();
+        // 가비지 경고 쉐이크
+        const intensity = Math.min(lines, 8);
+        this.shakeFrames = 18 + intensity * 2;
+        this.shakeIntensity = 2 + intensity * 0.7;
+        this._triggerFlash('#ff2222', 0.18 + intensity * 0.025);
         if (this.onGarbageChange) {
             this.onGarbageChange(this.pendingGarbage);
         }
@@ -349,12 +366,29 @@ class TetrisGame {
 
         if (isPerfectClear) {
             AudioEngine.SFX.perfectClear();
+            this._triggerFlash('#ffffff', 0.9);
+            this._spawnParticles(cleared, 'perfectClear');
         } else if (cleared > 0) {
-            if (tSpinType === 'TSPIN') AudioEngine.SFX.tSpin();
-            else if (tSpinType === 'TSPIN_MINI') AudioEngine.SFX.tSpinMini();
-            else if (cleared === 4) AudioEngine.SFX.tetris();
-            else if (cleared >= 2) AudioEngine.SFX.clearDouble();
-            else AudioEngine.SFX.clearSingle();
+            if (tSpinType === 'TSPIN') {
+                AudioEngine.SFX.tSpin();
+                this._triggerFlash('#cc44ff', 0.7);
+                this._spawnParticles(cleared, 'tspin');
+            } else if (tSpinType === 'TSPIN_MINI') {
+                AudioEngine.SFX.tSpinMini();
+                this._triggerFlash('#9933cc', 0.45);
+                this._spawnParticles(cleared, 'tspin');
+            } else if (cleared === 4) {
+                AudioEngine.SFX.tetris();
+                this._triggerFlash('#ffcc00', 0.75);
+                this._spawnParticles(cleared, 'tetris');
+            } else if (cleared >= 2) {
+                AudioEngine.SFX.clearDouble();
+                this._triggerFlash('#00e5ff', 0.35);
+                this._spawnParticles(cleared, 'normal');
+            } else {
+                AudioEngine.SFX.clearSingle();
+                this._spawnParticles(cleared, 'normal');
+            }
         } else {
             AudioEngine.SFX.lock();
         }
@@ -518,7 +552,22 @@ class TetrisGame {
     // ===== 렌더링 =====
     _render() {
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+
+        // 쉐이크 오프셋 계산
+        let sx = 0,
+            sy = 0;
+        if (this.shakeFrames > 0) {
+            const mag = this.shakeIntensity * (this.shakeFrames / 20);
+            sx = (Math.random() * 2 - 1) * mag;
+            sy = (Math.random() * 2 - 1) * mag;
+            this.shakeFrames--;
+        }
+
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.clearRect(-sx - 2, -sy - 2, W + 4, H + 4);
 
         // 그리드 라인
         ctx.strokeStyle = 'rgba(255,255,255,0.03)';
@@ -568,6 +617,136 @@ class TetrisGame {
                         this._drawCell(ctx, p.x + c, dy, p.color());
                 }
             }
+        }
+
+        // 파티클
+        this._updateParticles(ctx);
+
+        // 보드 플래시 (라인 클리어 번쩍임)
+        if (this.flashAlpha > 0) {
+            ctx.fillStyle = this.flashColor;
+            ctx.globalAlpha = this.flashAlpha;
+            ctx.fillRect(0, 0, W, H);
+            ctx.globalAlpha = 1;
+            this.flashAlpha = Math.max(0, this.flashAlpha - 0.055);
+        }
+
+        ctx.restore();
+
+        // 위험 테두리 (쉐이크 밖에 그려야 흔들리지 않음)
+        this._renderDangerBorder();
+    }
+
+    _renderDangerBorder() {
+        // 보드 최상단 4줄에 블록이 있으면 위험 상태
+        const dangerRows = 4;
+        let isDanger = false;
+        for (let r = HIDDEN_ROWS; r < HIDDEN_ROWS + dangerRows; r++) {
+            if (this.board.grid[r].some((c) => c !== 0)) {
+                isDanger = true;
+                break;
+            }
+        }
+        // 배틀 모드에서 pendingGarbage가 많아도 위험
+        if (this.battleEnabled && this.pendingGarbage >= 6) isDanger = true;
+
+        if (isDanger) {
+            this.dangerAlpha = Math.min(1, this.dangerAlpha + 0.06);
+        } else {
+            this.dangerAlpha = Math.max(0, this.dangerAlpha - 0.04);
+        }
+
+        if (this.dangerAlpha <= 0) return;
+        const ctx = this.ctx;
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        const pulse = 0.45 + Math.sin(performance.now() / 200) * 0.35;
+        const alpha = this.dangerAlpha * pulse;
+        const bw = 6;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, 'rgba(255,30,30,0.95)');
+        grad.addColorStop(0.4, 'rgba(255,30,30,0.5)');
+        grad.addColorStop(1, 'rgba(255,30,30,0.1)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = bw * 2;
+        ctx.strokeRect(0, 0, W, H);
+        ctx.restore();
+    }
+
+    // ===== 이펙트 메서드 =====
+    _triggerFlash(color, alpha) {
+        this.flashColor = color;
+        this.flashAlpha = Math.min(1, alpha);
+    }
+
+    _spawnParticles(cleared, type) {
+        const colors = {
+            normal: ['#00e5ff', '#ffffff', '#aaddff'],
+            tetris: ['#ffcc00', '#ffaa00', '#ffffff', '#ffe066'],
+            tspin: ['#cc44ff', '#ff88ff', '#aa00ff', '#ffffff'],
+            perfectClear: ['#ffffff', '#ffff88', '#88ffff', '#ff88ff'],
+        };
+        const palette = colors[type] || colors.normal;
+        // 지워지는 행들 (HIDDEN_ROWS 이후 최하단 cleared 줄)
+        const grid = this.board.grid;
+        const clearedRows = [];
+        for (
+            let r = ROWS + HIDDEN_ROWS - 1;
+            r >= HIDDEN_ROWS && clearedRows.length < cleared;
+            r--
+        ) {
+            // clearLines 이후이므로 빈 행 탐색 대신 전체 행 사용
+            clearedRows.push(r - HIDDEN_ROWS);
+        }
+        const count =
+            4 +
+            cleared * 5 +
+            (type === 'tetris' ? 10 : 0) +
+            (type === 'perfectClear' ? 20 : 0);
+        for (let i = 0; i < count; i++) {
+            const row = clearedRows[i % clearedRows.length] ?? ROWS - 1;
+            this.particles.push({
+                x: Math.random() * COLS * CELL,
+                y: (row + Math.random()) * CELL,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 1.5) * 5,
+                life: 1.0,
+                decay: 0.025 + Math.random() * 0.03,
+                size: 3 + Math.random() * 5,
+                color: palette[Math.floor(Math.random() * palette.length)],
+                shape: Math.random() < 0.4 ? 'square' : 'circle',
+            });
+        }
+    }
+
+    _updateParticles(ctx) {
+        if (this.particles.length === 0) return;
+        this.particles = this.particles.filter((p) => p.life > 0);
+        for (const p of this.particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.18; // 중력
+            p.vx *= 0.96;
+            p.life -= p.decay;
+            if (p.life <= 0) continue;
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            if (p.shape === 'square') {
+                ctx.fillRect(
+                    p.x - p.size / 2,
+                    p.y - p.size / 2,
+                    p.size,
+                    p.size,
+                );
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
         }
     }
 
