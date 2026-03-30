@@ -49,6 +49,13 @@ class TetrisGame {
         this.arrTimer = null;
         this.heldKeys = {};
         this.isSoftDropping = false;
+        this.lastSoftDropSfx = 0; // SFX 쓰로틀링용
+
+        // 프레임 기반 입력 시스템
+        this.dasDirection = null; // 'left' | 'right' | 'down' | null
+        this.dasFrames = 0; // DAS 프레임 카운터
+        this.arrFrames = 0; // ARR 프레임 카운터
+        this.inputBuffer = []; // 입력 버퍼
 
         this.pendingGarbage = 0;
         this.garbageHoleColumn = Math.floor(Math.random() * COLS);
@@ -90,6 +97,11 @@ class TetrisGame {
         this.dropAccum = 0;
         this.heldKeys = {};
         this.isSoftDropping = false;
+        this.lastSoftDropSfx = 0;
+        this.dasDirection = null;
+        this.dasFrames = 0;
+        this.arrFrames = 0;
+        this.inputBuffer = [];
         this.pendingGarbage = 0;
         this.garbageHoleColumn = Math.floor(Math.random() * COLS);
         this.particles = [];
@@ -151,6 +163,15 @@ class TetrisGame {
         const dt = time - this.lastTime;
         this.lastTime = time;
 
+        // 입력 버퍼 처리
+        while (this.inputBuffer.length > 0) {
+            const input = this.inputBuffer.shift();
+            input();
+        }
+
+        // 프레임 기반 DAS/ARR (60fps 기준)
+        this._handleFrameBasedInput(dt);
+
         this.dropAccum += dt;
         const sdf = this.isSoftDropping ? GameSettings.getSDFMultiplier() : 1;
         const dropInterval = sdf === Infinity ? 0 : this._dropInterval() / sdf;
@@ -192,13 +213,84 @@ class TetrisGame {
 
         if (this.isOnGround) {
             this.lockDelay += dt;
-            if (this.lockDelay >= 500 || this.lockMoves >= 15) {
+            // 무한 리셋: lockMoves를 제거하여 테트리오처럼 무한 조작 가능
+            if (this.lockDelay >= 500) {
                 this._lockPiece();
             }
         }
 
         this._render();
         this.rafId = requestAnimationFrame((t) => this._loop(t));
+    }
+
+    _handleFrameBasedInput(dt) {
+        const frameTime = 16.67; // 60fps
+        if (!this.dasDirection) return;
+
+        const dasMs = GameSettings.getDASms();
+        const arrMs = GameSettings.getARRms();
+        const dasFrames = Math.ceil(dasMs / frameTime);
+        const arrFrames = arrMs === 0 ? 0 : Math.ceil(arrMs / frameTime);
+
+        this.dasFrames++;
+
+        if (this.dasFrames >= dasFrames) {
+            if (arrFrames === 0) {
+                // ARR=0: 즉시 끝까지
+                if (this.dasDirection === 'left') {
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x - 1,
+                            this.currentPiece.y,
+                        )
+                    ) {
+                        this.currentPiece.x--;
+                        this.lastRotated = false;
+                        this._resetLockIfOnGround();
+                    }
+                } else if (this.dasDirection === 'right') {
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x + 1,
+                            this.currentPiece.y,
+                        )
+                    ) {
+                        this.currentPiece.x++;
+                        this.lastRotated = false;
+                        this._resetLockIfOnGround();
+                    }
+                } else if (this.dasDirection === 'down') {
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x,
+                            this.currentPiece.y + 1,
+                        )
+                    ) {
+                        this.currentPiece.y++;
+                        this.score += 1;
+                    }
+                    this.isOnGround = true;
+                    const now = performance.now();
+                    if (now - this.lastSoftDropSfx > 150) {
+                        AudioEngine.SFX.softDrop();
+                        this.lastSoftDropSfx = now;
+                    }
+                }
+                this.dasDirection = null; // ARR=0이면 한번만
+            } else {
+                // ARR 간격으로 반복
+                this.arrFrames++;
+                if (this.arrFrames >= arrFrames) {
+                    this.arrFrames = 0;
+                    if (this.dasDirection === 'left') this._moveLeft();
+                    else if (this.dasDirection === 'right') this._moveRight();
+                    else if (this.dasDirection === 'down') this._softDrop(true);
+                }
+            }
+        }
     }
 
     _dropInterval() {
@@ -254,7 +346,12 @@ class TetrisGame {
             this.lockDelay = 0;
             if (manual) {
                 this.score += 1;
-                AudioEngine.SFX.softDrop();
+                // SFX 쓰로틀링 (150ms 간격)
+                const now = performance.now();
+                if (now - this.lastSoftDropSfx > 150) {
+                    AudioEngine.SFX.softDrop();
+                    this.lastSoftDropSfx = now;
+                }
             }
             this.lastRotated = false;
         } else {
@@ -338,7 +435,7 @@ class TetrisGame {
     _resetLockIfOnGround() {
         if (this.isOnGround) {
             this.lockDelay = 0;
-            this.lockMoves++;
+            // lockMoves 제거: 무한 리셋 허용 (테트리오 스타일)
         }
     }
 
@@ -1081,49 +1178,52 @@ class TetrisGame {
         switch (key) {
             case 'ArrowLeft':
                 e.preventDefault();
-                this._moveLeft();
-                this._startDAS('left');
+                this.inputBuffer.push(() => this._moveLeft());
+                this.dasDirection = 'left';
+                this.dasFrames = 0;
+                this.arrFrames = 0;
                 break;
             case 'ArrowRight':
             case 'KeyD':
                 e.preventDefault();
-                this._moveRight();
-                this._startDAS('right');
+                this.inputBuffer.push(() => this._moveRight());
+                this.dasDirection = 'right';
+                this.dasFrames = 0;
+                this.arrFrames = 0;
                 break;
             case 'ArrowDown':
             case 'KeyS':
                 e.preventDefault();
                 this.isSoftDropping = true;
-                this._softDrop(true);
-                this._startDAS('down');
+                this.inputBuffer.push(() => this._softDrop(true));
+                this.dasDirection = 'down';
+                this.dasFrames = 0;
+                this.arrFrames = 0;
                 break;
             case 'ArrowUp':
             case 'KeyX':
                 e.preventDefault();
-                this._rotate(1);
+                this.inputBuffer.push(() => this._rotate(1));
                 break;
             case 'KeyZ':
                 e.preventDefault();
-                this._rotate(-1);
+                this.inputBuffer.push(() => this._rotate(-1));
                 break;
             case 'KeyA':
                 e.preventDefault();
-                this._rotate(2);
+                this.inputBuffer.push(() => this._rotate(2));
                 break;
             case 'Space':
                 e.preventDefault();
-                this._hardDrop();
+                this.inputBuffer.push(() => this._hardDrop());
                 break;
             case 'KeyC':
             case 'ShiftLeft':
             case 'ShiftRight':
                 e.preventDefault();
-                this._hold();
+                this.inputBuffer.push(() => this._hold());
                 break;
         }
-        this._render();
-        this._renderHold();
-        this._renderNext();
     }
 
     _onKeyUp(e) {
@@ -1132,8 +1232,14 @@ class TetrisGame {
         if (['ArrowDown', 'KeyS'].includes(key)) {
             this.isSoftDropping = false;
         }
-        if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'KeyS'].includes(key)) {
-            this._stopDAS();
+        if (
+            ['ArrowLeft', 'ArrowRight', 'ArrowDown', 'KeyS', 'KeyD'].includes(
+                key,
+            )
+        ) {
+            this.dasDirection = null;
+            this.dasFrames = 0;
+            this.arrFrames = 0;
         }
     }
 
@@ -1172,7 +1278,25 @@ class TetrisGame {
                         this._resetLockIfOnGround();
                     }
                 }
-                if (dir === 'down') this._softDrop(true);
+                if (dir === 'down') {
+                    // ARR=0이면 바닥까지 즉시 드랍
+                    while (
+                        this.board.isValid(
+                            this.currentPiece.currentShape(),
+                            this.currentPiece.x,
+                            this.currentPiece.y + 1,
+                        )
+                    ) {
+                        this.currentPiece.y++;
+                        this.score += 1;
+                    }
+                    this.isOnGround = true;
+                    const now = performance.now();
+                    if (now - this.lastSoftDropSfx > 150) {
+                        AudioEngine.SFX.softDrop();
+                        this.lastSoftDropSfx = now;
+                    }
+                }
                 this._render();
             } else {
                 this.arrTimer = setInterval(() => {

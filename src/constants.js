@@ -389,7 +389,7 @@ const SCORE_TABLE = { 0: 0, 1: 100, 2: 300, 3: 500, 4: 800 };
 const T_SPIN_SCORE = { 0: 400, 1: 800, 2: 1200, 3: 1600 };
 const T_SPIN_MINI_SCORE = { 0: 100, 1: 200, 2: 400 };
 
-// ===== 배틀 공격량 (TETR.IO 스타일 근사) =====
+// ===== 배틀 공격량 (TETR.IO 스타일) =====
 function computeTetrioAttack({
     cleared,
     tSpinType = null,

@@ -299,13 +299,13 @@ function sdfLabel(idx) {
     return SDF_LABELS[idx];
 }
 function arrLabel(v) {
-    return v === 0 ? '0 (즉시)' : String(v);
+    return v === 0 ? '0 (즉시)' : v.toFixed(1);
 }
 function dasLabel(v) {
-    return String(v);
+    return v.toFixed(1);
 }
 function dcdLabel(v) {
-    return v === 0 ? '0 (없음)' : String(v);
+    return v === 0 ? '0 (없음)' : v.toFixed(1);
 }
 
 function syncOptionUI() {
@@ -328,6 +328,52 @@ function syncOptionUI() {
     updateMuteButtons();
 }
 
+let inputModalResolve = null;
+
+function openInputModal(title, min, max, current) {
+    return new Promise((resolve) => {
+        inputModalResolve = resolve;
+        document.getElementById('input-modal-title').textContent = title;
+        document.getElementById('input-modal-hint').textContent =
+            `범위: ${min} ~ ${max}`;
+        const input = document.getElementById('input-modal-input');
+        input.value = current;
+        input.min = min;
+        input.max = max;
+        document.getElementById('input-modal').classList.remove('hidden');
+        setTimeout(() => {
+            input.focus();
+            input.select();
+        }, 100);
+    });
+}
+
+function closeInputModal(value) {
+    document.getElementById('input-modal').classList.add('hidden');
+    if (inputModalResolve) {
+        inputModalResolve(value);
+        inputModalResolve = null;
+    }
+}
+
+async function directInput(
+    settingName,
+    displayId,
+    min,
+    max,
+    current,
+    label,
+    updateFn,
+) {
+    const value = await openInputModal(settingName, min, max, current);
+    if (value === null) return;
+    let val = parseFloat(value);
+    if (isNaN(val)) val = current;
+    val = Math.max(min, Math.min(max, val));
+    document.getElementById(displayId).textContent = label(val);
+    updateFn(val);
+}
+
 function openOptionModal() {
     syncOptionUI();
     document.getElementById('option-modal').classList.remove('hidden');
@@ -348,6 +394,75 @@ document
 document
     .getElementById('option-backdrop')
     .addEventListener('click', closeOptionModal);
+
+// 입력 모달 이벤트
+document.getElementById('input-modal-ok').addEventListener('click', () => {
+    const val = document.getElementById('input-modal-input').value;
+    closeInputModal(val);
+});
+document.getElementById('input-modal-cancel').addEventListener('click', () => {
+    closeInputModal(null);
+});
+document.getElementById('input-backdrop').addEventListener('click', () => {
+    closeInputModal(null);
+});
+document
+    .getElementById('input-modal-input')
+    .addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const val = document.getElementById('input-modal-input').value;
+            closeInputModal(val);
+        } else if (e.key === 'Escape') {
+            closeInputModal(null);
+        }
+    });
+
+// 배지 클릭 시 직접 입력
+document.getElementById('arr-val-display').addEventListener('click', () => {
+    const current = parseFloat(document.getElementById('opt-arr').value);
+    directInput(
+        'ARR (자동 반복 속도)',
+        'arr-val-display',
+        0,
+        10,
+        current,
+        arrLabel,
+        (v) => {
+            GameSettings.current.arr = v;
+            document.getElementById('opt-arr').value = v;
+        },
+    );
+});
+document.getElementById('das-val-display').addEventListener('click', () => {
+    const current = parseFloat(document.getElementById('opt-das').value);
+    directInput(
+        'DAS (입력 인식 지연)',
+        'das-val-display',
+        0,
+        30,
+        current,
+        dasLabel,
+        (v) => {
+            GameSettings.current.das = v;
+            document.getElementById('opt-das').value = v;
+        },
+    );
+});
+document.getElementById('dcd-val-display').addEventListener('click', () => {
+    const current = parseFloat(document.getElementById('opt-dcd').value);
+    directInput(
+        'DCD (DAS 후 딜레이 캔슬)',
+        'dcd-val-display',
+        0,
+        30,
+        current,
+        dcdLabel,
+        (v) => {
+            GameSettings.current.dcd = v;
+            document.getElementById('opt-dcd').value = v;
+        },
+    );
+});
 
 // 슬라이더 실시간 반영
 document.getElementById('opt-arr').addEventListener('input', (e) => {

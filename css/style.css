@@ -613,6 +613,11 @@ body {
     justify-content: center;
 }
 
+/* 입력 모달은 옵션 모달 위에 표시 */
+#input-modal {
+    z-index: 200;
+}
+
 .modal-backdrop {
     position: absolute;
     inset: 0;
@@ -737,6 +742,67 @@ body {
     gap: 20px;
     padding: 32px 28px;
     min-width: 300px;
+}
+
+/* ===== 직접 입력 모달 ===== */
+.input-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px 32px;
+    min-width: 320px;
+}
+
+.input-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.input-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-modal-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    background: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--accent2);
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.input-modal-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.15);
+}
+
+.input-modal-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.input-modal-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.input-modal-buttons .btn {
+    flex: 1;
+    padding: 10px;
 }
 
 .difficulty-desc {
@@ -1202,6 +1268,15 @@ body {
     min-width: 48px;
     text-align: center;
     font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.option-value-badge:hover {
+    background: rgba(0, 229, 255, 0.2);
+    border-color: rgba(0, 229, 255, 0.5);
+    transform: scale(1.05);
 }
 
 .option-slider-row {

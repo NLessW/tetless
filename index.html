@@ -251,6 +251,35 @@
             </div>
         </div>
 
+        <!-- 직접 입력 모달 -->
+        <div id="input-modal" class="modal hidden">
+            <div class="modal-backdrop" id="input-backdrop"></div>
+            <div class="modal-content input-modal-content">
+                <h3 class="input-modal-title" id="input-modal-title">
+                    값 입력
+                </h3>
+                <div class="input-modal-body">
+                    <input
+                        type="number"
+                        id="input-modal-input"
+                        class="input-modal-input"
+                        step="0.1"
+                        placeholder="0.0" />
+                    <div class="input-modal-hint" id="input-modal-hint">
+                        범위: 0 ~ 10
+                    </div>
+                </div>
+                <div class="input-modal-buttons">
+                    <button class="btn btn-secondary" id="input-modal-cancel">
+                        취소
+                    </button>
+                    <button class="btn btn-primary" id="input-modal-ok">
+                        확인
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 옵션 모달 -->
         <div id="option-modal" class="modal hidden">
             <div class="modal-backdrop" id="option-backdrop"></div>
@@ -282,8 +311,8 @@
                                 type="range"
                                 id="opt-arr"
                                 min="0"
-                                max="5"
-                                step="1"
+                                max="10"
+                                step="0.1"
                                 value="1" />
                             <span class="option-edge">느림</span>
                         </div>
@@ -309,9 +338,9 @@
                             <input
                                 type="range"
                                 id="opt-das"
-                                min="1"
-                                max="20"
-                                step="1"
+                                min="0"
+                                max="30"
+                                step="0.5"
                                 value="10" />
                             <span class="option-edge">느림</span>
                         </div>
@@ -338,8 +367,8 @@
                                 type="range"
                                 id="opt-dcd"
                                 min="0"
-                                max="20"
-                                step="1"
+                                max="30"
+                                step="0.5"
                                 value="10" />
                             <span class="option-edge">느림</span>
                         </div>
